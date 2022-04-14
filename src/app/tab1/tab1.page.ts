@@ -20,6 +20,7 @@ export class Tab1Page implements OnInit{
   latslngs = []
   trajectoryLayer: any
   user:any  
+  activeTrajectory:any;
   constructor(
     private geolifeService: GeolifeService
   ) {}
@@ -30,7 +31,7 @@ export class Tab1Page implements OnInit{
   }
   async ngOnInit(){
     this.user = await this.geolifeService.getAllTrajectories();
-    console.log("finished loading");
+    console.log("finished loading",this.user);
   }
   private initMap(): void {
     this.map = L.map('map', {
@@ -51,10 +52,17 @@ export class Tab1Page implements OnInit{
     tiles.addTo(this.map)
   }
 
+  calculateStayPoints(){
+   const stayPoints =  this.geolifeService.extractStayPoints(this.activeTrajectory);
 
+   stayPoints.map((point)=>{
+     L.circle([point.meanLatitude, point.meanLongitude],{ radius: 20, color:'purple'}).addTo(this.map)
+   })
+  }
 
   loadToMap(trajectory) {
     const trajectoryLayer = L.layerGroup()
+    this.activeTrajectory = trajectory;
     trajectory.map((point, index) => {
       let color
       switch (index) {
@@ -68,7 +76,7 @@ export class Tab1Page implements OnInit{
           color = '#6200ea'
           break
       }
-      L.circle(point.coords, { radius: 15, color }).addTo(trajectoryLayer)
+      L.circle([point.lat,point.lng], { radius: 15, color }).addTo(trajectoryLayer)
     })
    // const polyline = L.polyline(trajectory.latslngs, { color: 'blue' }).addTo(trajectoryLayer)
     trajectoryLayer.addTo(this.map)

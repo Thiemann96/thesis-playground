@@ -19,6 +19,14 @@
           >Clear map</ion-button
         >
       </ion-col>
+      <ion-col>
+        <ion-button
+          color="success"
+          expand="block"
+          (click)="calculateStayPoints()"
+          >Calculate stay points</ion-button
+        >
+      </ion-col>
     </ion-row>
     <ion-row>
       <ion-col>
@@ -31,22 +39,24 @@
       <ion-col>
         <div *ngIf="user" class="sidebar">
           <ion-label>Trajectories:</ion-label>
-            <ion-list>
-              <ion-card *ngFor="let trajectory of user.filteredT">
+          <ion-list>
+            <ion-card *ngFor="let trajectory of user.filteredT">
+              <ion-card-header>
+                <ion-card-subtitle>{{ trajectory.length }} total points</ion-card-subtitle>
+                <ion-card-title>
+                  {{ trajectory[0].date.toLocaleString('de-DE',
+                  {timeZone:'Asia/Shanghai'}) }} till {{
+                  trajectory[trajectory.length-1].date.toLocaleString('de-DE',{timeZone:'Asia/Shanghai'}) }}</ion-card-title
+                >
+              </ion-card-header>
+              <ion-card-content>
                 <ion-item>
-                  <ion-icon name="analytics-outline" slot="start"></ion-icon>
-                  <ion-label>
-                    {{ trajectory[0].date.toUTCString() }}
-                  </ion-label>
-                  <ion-button
-                    color="success"
-                    (click)="loadToMap(trajectory)"
-                    slot="end"
-                    >Load to map</ion-button
-                  >
+                  <ion-icon name="pin" slot="start"></ion-icon>
+                  <ion-button size="large" color="primary" fill="outline" slot="end" (click)="loadToMap(trajectory)">View</ion-button>
                 </ion-item>
-              </ion-card>
-            </ion-list>
+              </ion-card-content>
+            </ion-card>
+          </ion-list>
         </div>
       </ion-col>
     </ion-row>
