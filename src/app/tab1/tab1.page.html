@@ -1,0 +1,57 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button
+        [text]="back"
+        defaultHref="/"
+      ></ion-back-button>
+    </ion-buttons>
+    <ion-title>Chen et. al.</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-grid>
+    <ion-row>
+      <ion-col>
+        <ion-item>
+          <ion-label>Upload trajectory</ion-label>
+        </ion-item>
+      </ion-col>
+      <ion-col>
+        <ion-button color="danger" expand="block" (click)="clearMap()"
+          >Clear map</ion-button
+        >
+      </ion-col>
+    </ion-row>
+    <ion-row>
+      <ion-col>
+        <div class="map-container">
+          <div class="map-frame">
+            <div id="map"></div>
+          </div>
+        </div>
+      </ion-col>
+      <ion-col>
+        <div class="sidebar">
+          <ion-label>Trajectories:</ion-label>
+          <ion-list *ngFor="let trajectory of user.trajectories">
+            <ion-card>
+              <ion-item>
+                <ion-icon name="analytics-outline" slot="start"></ion-icon>
+                <ion-label
+                  >{{ trajectory.points[0].dates[0] }} {{  trajectory.points[0].dates[1] }}
+                </ion-label>
+                <ion-button
+                  color="success"
+                  (click)="loadToMap(trajectory)"
+                  slot="end"
+                  >Load to map</ion-button
+                >
+              </ion-item>
+            </ion-card>
+          </ion-list>
+        </div>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>
