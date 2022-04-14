@@ -12,7 +12,7 @@ interface GeolifeTrajectory {
 }
 interface Point {
   coords: [number, number];
-  date: any;
+  date: Date;
   speed?: number;
   distance?: number;
   acceleration?: number;
@@ -22,7 +22,6 @@ interface Point {
   providedIn: "root",
 })
 export class GeolifeService {
-  dataSource = "./assets/data/GeoLifeTrajectories";
 
   constructor(private http: HttpClient) {}
 
@@ -36,30 +35,13 @@ export class GeolifeService {
       return data;
     });
     const trajectories = await Promise.all(promises);
-
     const finishedT = trajectories.map((t) => {
       const trajectory = this.parsePLTFile(t);
       return trajectory;
     });
-
     const filteredT = finishedT.map((t) => {
       return this.filterNoise(t);
     });
-
-    console.log(filteredT);
-
-    // .subscribe((data) => {
-    //   const allPath = data.split('\n').map((path) => {
-    //     return path.substring(56, path.length);
-    //   });
-    //   for (let index = 0; index < allPath.length; index++) {
-    //     const path = allPath[index];
-    //     this.http.get(path, { responseType: 'text' }).subscribe((data) => {
-    //       trajectories.push(this.parsePLTFile(data))
-    //       return;
-    //     });
-    //   }
-    // });
     const user = {
       id: "000",
       filteredT,

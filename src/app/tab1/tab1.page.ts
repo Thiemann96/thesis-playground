@@ -30,7 +30,7 @@ export class Tab1Page implements OnInit{
   }
   async ngOnInit(){
     this.user = await this.geolifeService.getAllTrajectories();
-    console.log("user on init",this.user);
+    console.log("finished loading");
   }
   private initMap(): void {
     this.map = L.map('map', {
