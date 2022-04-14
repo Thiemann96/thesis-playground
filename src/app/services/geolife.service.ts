@@ -11,11 +11,19 @@ interface GeolifeTrajectory {
   points: Array<Point>;
 }
 interface Point {
-  coords: [number, number];
+  lat: number;
+  lng: number;
   date: Date;
-  speed?: number;
-  distance?: number;
+  speedKmH?: number;
+  distanceCoveredMeters?: number;
   acceleration?: number;
+}
+
+interface StayPoint {
+  meanLatitude: number;
+  meanLongitude: number;
+  arrivalTime: number;
+  leaveTime: number;
 }
 
 @Injectable({
@@ -71,14 +79,51 @@ export class GeolifeService {
       if (index !== csvArray.length - 1) {
         const pointArr = point.split(",");
         const pointToPush: Point = {
-          coords: [pointArr[0], pointArr[1]],
+          lat: parseFloat(pointArr[0]),
+          lng: parseFloat(pointArr[1]),
           date: this.getDate(pointArr[5], pointArr[6])
         };
         points.push(pointToPush);
       }
     });
-    
     return points;
+  }
+
+  public extractStayPoints(trajectory) {
+    const distThreshold = 200; // meters
+    const timeThreshold = 15; // milliseconds
+    const stayPoints = [];
+    let i = 0; 
+    while(i < trajectory.length){
+      let j = i++; 
+      while( j < trajectory.length){
+        const distance = trajectory[j].distanceCoveredMeters 
+        if( distance > distThreshold ){
+          const deltaTime = (trajectory[j].date - trajectory[i].date) / 60000 // convert to minutes
+          if(deltaTime > timeThreshold ){
+            let features = turf.points([
+              [trajectory[j].lat,trajectory[j].lng],
+              [trajectory[i].lat,trajectory[i].lng],
+
+            ])
+            const center = turf.center(features);
+            const sp: StayPoint = {
+              meanLatitude: center.geometry.coordinates[0],
+              meanLongitude: center.geometry.coordinates[1],
+              arrivalTime:trajectory[i].date,
+              leaveTime:trajectory[j].date,
+              
+            }
+            stayPoints.push(sp);
+          break;
+          }
+        }
+        j += 1;
+      }
+      i = j
+    }
+    console.log(stayPoints);
+    return stayPoints
   }
 
   private filterNoise(trajectory) {
@@ -93,8 +138,8 @@ export class GeolifeService {
           trajectory[index]
         );
         if (speed < speedThreshold) {
-          point.speed = speed;
-          point.distanceCovered = distance;
+          point.speedKmH = speed;
+          point.distanceCoveredMeters = distance;
           if (index > 2) {
             const acceleration = this.getAcceleration(
               trajectory[index - 3],
@@ -104,13 +149,13 @@ export class GeolifeService {
               point.acceleration = acceleration;
               newArray.push(point);
             } else {
-             // console.log("Discarding point, too much acc");
+              //console.log("Discarding point, too much acc");
             }
           } else {
             newArray.push(point);
           }
         } else {
-          // console.log("Discarding point, too much speed");
+          //console.log("Discarding point, too much speed");
         }
       }
     });
@@ -133,16 +178,17 @@ export class GeolifeService {
   private getSpeed(pointA, pointB) {
     // calculates the speed between two points
     // takes PointA{coords,dates} & PointB{coords,dates} as input
-    const from = turf.point(pointA.coords);
-    const to = turf.point(pointB.coords);
-    const distance = turf.distance(from, to, { units: "kilometers" });
+    const from = turf.point([pointA.lat,pointA.lng]);
+    const to = turf.point([pointB.lat,pointB.lng]);
+    const distance = turf.distance(from, to, { units: "meters" });
+    const distanceKm = turf.distance(from, to, { units: "kilometers" });
 
 
     // convert to seconds, minutes, hours
     const elapsedTime = this.convertMsToHours(Math.abs(pointA.date - pointB.date));
 
     // km per hour
-    let speed = distance / elapsedTime;
+    let speed = distanceKm / elapsedTime;
     return { speed, distance };
   }
 
@@ -157,9 +203,7 @@ export class GeolifeService {
     const speedInM = (speedInKmH) => {
       return ((( speedInKmH * 1000) / 60 ) / 60);
     }
-
-    const acceleration = (speedInM(pointC.speed) - speedInM(pointA.speed)) / elapsedTime;
-    
+    const acceleration = (speedInM(pointC.speedKmH) - speedInM(pointA.speedKmH)) / elapsedTime;
     return acceleration;
   }
 }
