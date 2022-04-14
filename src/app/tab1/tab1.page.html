@@ -32,14 +32,14 @@
         </div>
       </ion-col>
       <ion-col>
-        <div class="sidebar">
+        <div *ngIf="user" class="sidebar">
           <ion-label>Trajectories:</ion-label>
-          <ion-list *ngFor="let trajectory of user.trajectories">
+          <ion-list *ngFor="let trajectory of user.filteredT">
             <ion-card>
               <ion-item>
                 <ion-icon name="analytics-outline" slot="start"></ion-icon>
-                <ion-label
-                  >{{ trajectory.points[0].dates[0] }} {{  trajectory.points[0].dates[1] }}
+                <ion-label>
+                  {{ trajectory[0].date.toTimeString() }} 
                 </ion-label>
                 <ion-button
                   color="success"

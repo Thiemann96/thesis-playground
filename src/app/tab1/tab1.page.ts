@@ -28,10 +28,10 @@ export class Tab1Page implements OnInit{
     this.initMap();
     
   }
-  ngOnInit(): void {
-    this.user = this.geolifeService.getAllTrajectories();
+  async ngOnInit(){
+    this.user = await this.geolifeService.getAllTrajectories();
+    console.log("user on init",this.user);
   }
-
   private initMap(): void {
     this.map = L.map('map', {
       center: [39.9, 116.4],
@@ -55,13 +55,13 @@ export class Tab1Page implements OnInit{
 
   loadToMap(trajectory) {
     const trajectoryLayer = L.layerGroup()
-    trajectory.points.map((point, index) => {
+    trajectory.map((point, index) => {
       let color
       switch (index) {
         case 0:
           color = '#00c853' // green
           break
-        case trajectory.points.length - 1:
+        case trajectory.length - 1:
           color = '#d50000' // red
           break
         default:

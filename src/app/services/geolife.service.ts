@@ -41,7 +41,6 @@ export class GeolifeService {
       const trajectory = this.parsePLTFile(t);
       return trajectory;
     });
-    console.log(finishedT)
 
     const filteredT = finishedT.map((t) => {
       return this.filterNoise(t);
@@ -63,7 +62,7 @@ export class GeolifeService {
     // });
     const user = {
       id: "000",
-      trajectories,
+      filteredT,
     };
     return user;
   }
@@ -123,13 +122,13 @@ export class GeolifeService {
               point.acceleration = acceleration;
               newArray.push(point);
             } else {
-              console.log("Discarding point, too much acc");
+             // console.log("Discarding point, too much acc");
             }
           } else {
             newArray.push(point);
           }
         } else {
-          console.log("Discarding point, too much speed");
+          // console.log("Discarding point, too much speed");
         }
       }
     });
