@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import * as turf from '@turf/turf';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import * as turf from "@turf/turf";
 
 // a geolife user has multiple geolife trajectories and one id for identification
 interface GeolifeUser {
@@ -12,138 +12,173 @@ interface GeolifeTrajectory {
 }
 interface Point {
   coords: [number, number];
-  dates: [string, string];
-  speed?: number,
-  acceleration?: number
+  date: any;
+  speed?: number;
+  distance?: number;
+  acceleration?: number;
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class GeolifeService {
-  dataSource = './assets/data/GeoLifeTrajectories';
+  dataSource = "./assets/data/GeoLifeTrajectories";
 
   constructor(private http: HttpClient) {}
 
   // loads all trajectories from assets and converts them to GeolifeUser Arrays
-  public getAllTrajectories(): GeolifeUser {
-    const trajectories = [];
-    this.http
-      .get('./assets/path.csv', { responseType: 'text' })
-      .subscribe((data) => {
-        const allPath = data.split('\n').map((path) => {
-          return path.substring(56, path.length);
-        });
-        allPath.map((path) => {
-          this.http.get(path, { responseType: 'text' }).subscribe((data) => {
-            trajectories.push(this.parsePLTFile(data));
-          });
-        });
-      });
-    const user: GeolifeUser = {
-      id: '000',
+  public async getAllTrajectories() {
+    const allPath = await this.getAllPaths();
+    const promises = await allPath.map(async (path) => {
+      const data = await this.http
+        .get(path, { responseType: "text" })
+        .toPromise();
+      return data;
+    });
+    const trajectories = await Promise.all(promises);
+
+    const finishedT = trajectories.map((t) => {
+      const trajectory = this.parsePLTFile(t);
+      return trajectory;
+    });
+    console.log(finishedT)
+
+    const filteredT = finishedT.map((t) => {
+      return this.filterNoise(t);
+    });
+
+    console.log(filteredT);
+
+    // .subscribe((data) => {
+    //   const allPath = data.split('\n').map((path) => {
+    //     return path.substring(56, path.length);
+    //   });
+    //   for (let index = 0; index < allPath.length; index++) {
+    //     const path = allPath[index];
+    //     this.http.get(path, { responseType: 'text' }).subscribe((data) => {
+    //       trajectories.push(this.parsePLTFile(data))
+    //       return;
+    //     });
+    //   }
+    // });
+    const user = {
+      id: "000",
       trajectories,
     };
     return user;
   }
 
+  private async getAllPaths() {
+    const paths = await this.http
+      .get("./assets/path.csv", { responseType: "text" })
+      .toPromise();
+    const allPath = paths.split("\n").map((path) => {
+      return path.substring(56, path.length);
+    });
+
+    return allPath;
+  }
   // parses plt files and creates an object
-  private parsePLTFile(fileContent: string): GeolifeTrajectory {
+  private parsePLTFile(fileContent) {
     let csvArray = [];
     // lat, lng, alti, date string, time string
-    csvArray = fileContent.split('\n');
+    csvArray = fileContent.split("\n");
     csvArray.splice(0, 6);
     const points: Array<Point> = [];
     // map array and extract lats lngs for leaflet
     csvArray.map((point, index) => {
-      if (index !== csvArray.length - 1){
-        const pointArr = point.split(',');
-        const pointToPush:Point = {
+      if (index !== csvArray.length - 1) {
+        const pointArr = point.split(",");
+        const pointToPush: Point = {
           coords: [pointArr[0], pointArr[1]],
-          dates: [pointArr[5], pointArr[6]],
-        }
-        if(points.length === 0 ){
-          points.push(pointToPush);
-        }
-        else{
-          const previousPoint = points[index-1];
-          let previousPreviousPoint;
-          if(index > 2 ){ previousPreviousPoint = points[index-2];}
-          const speed = this.getSpeed(previousPoint, pointToPush)
-          if(speed < 150){
-            pointToPush.speed = speed;
-            if(index > 2){
-              const acceleration = this.getAcceleration(previousPreviousPoint,pointToPush);
-              if(true){
-                pointToPush.acceleration = acceleration;
-                points.push(pointToPush);
-              }
-              else {
-                console.log("Acceleratin over threshold, discaridng point");
-              }
+          date: this.getDate(pointArr[5], pointArr[6])
+        };
+        points.push(pointToPush);
+      }
+    });
+    
+    return points;
+  }
+
+  private filterNoise(trajectory) {
+    const speedThreshold = 150;
+    const accThreshold = 15;
+    const newArray = [];
+    trajectory.map((point, index) => {
+      if (index === 0) newArray.push(point);
+      if (index > 1) {
+        const { speed, distance } = this.getSpeed(
+          trajectory[index - 1],
+          trajectory[index]
+        );
+        if (speed < speedThreshold) {
+          point.speed = speed;
+          point.distanceCovered = distance;
+          if (index > 2) {
+            const acceleration = this.getAcceleration(
+              trajectory[index - 3],
+              trajectory[index]
+            );
+            if (acceleration < accThreshold) {
+              point.acceleration = acceleration;
+              newArray.push(point);
+            } else {
+              console.log("Discarding point, too much acc");
             }
+          } else {
+            newArray.push(point);
           }
-          else {
-            console.log("Speed over threshold, discarding point...");
-          }
+        } else {
+          console.log("Discarding point, too much speed");
         }
       }
     });
-
-    const trajectory: GeolifeTrajectory = { points };
-    console.log(trajectory)
-    return trajectory;
+    return newArray;
   }
 
-  private filterNoise(trajectory): GeolifeTrajectory {
-    const speedThreshold = 150;
-
-    return;
-  }
-
-  private convertMsToHours(duration){
-    const hours = (((duration / 1000) / 60) / 60);
+  private convertMsToHours(duration) {
+    const hours = duration / 1000 / 60 / 60;
     return hours;
   }
 
-  private getSpeed(pointA, pointB): number{
+  private getDate(dateString, timeString) {
+    const dateFrom: any = new Date(dateString);
+    let timeArr = timeString.split(":");
+    dateFrom.setHours(timeArr[0], timeArr[1], timeArr[2]);
+
+    return dateFrom;
+  }
+
+  private getSpeed(pointA, pointB) {
     // calculates the speed between two points
     // takes PointA{coords,dates} & PointB{coords,dates} as input
     const from = turf.point(pointA.coords);
     const to = turf.point(pointB.coords);
-    const distance = turf.distance(from, to, { units: 'kilometers' });
+    const distance = turf.distance(from, to, { units: "kilometers" });
 
-    const dateFrom: any = new Date(pointA.dates[0]);
-    let timeArr = pointA.dates[1].split(':');
-    dateFrom.setHours(timeArr[0], timeArr[1], timeArr[2]);
-
-    const dateTo: any = new Date(pointB.dates[0]);
-    timeArr = pointB.dates[1].split(':');
-    dateTo.setHours(timeArr[0], timeArr[1], timeArr[2]);
 
     // convert to seconds, minutes, hours
-    const elapsedTime = this.convertMsToHours(Math.abs(dateFrom - dateTo));
+    const elapsedTime = this.convertMsToHours(Math.abs(pointA.date - pointB.date));
 
     // km per hour
-    let speed = distance / elapsedTime
-    return speed; 
+    let speed = distance / elapsedTime;
+    return { speed, distance };
   }
 
   private getAcceleration(pointA, pointC) {
-    // over a 3 point window get the acceleration 
+    // over a 3 point window get the acceleration
     // need: speed at point A, speed at point B, time taken
-    // formula used : a = (velocity_final - velocity_initial) / duration
-    const dateFrom: any = new Date(pointA.dates[0]);
-    let timeArr = pointA.dates[1].split(':');
-    dateFrom.setHours(timeArr[0], timeArr[1], timeArr[2]);
+    // formula used : a = (velocity_final_s - velocity_initials_s) / duration_s);
+    // 15 m/s² 
+    // convert all values to meter and seconds 
+    const elapsedTime = (Math.abs(pointA.date - pointC.date)) / 1000; 
 
-    const dateTo: any = new Date(pointC.dates[0]);
-    timeArr = pointC.dates[1].split(':');
-    dateTo.setHours(timeArr[0], timeArr[1], timeArr[2]);
+    const speedInM = (speedInKmH) => {
+      return ((( speedInKmH * 1000) / 60 ) / 60);
+    }
 
-    const elapsedTime = this.convertMsToHours(Math.abs(dateFrom - dateTo));
-
-    const acceleration = (pointC.speed - pointA.speed) / elapsedTime
+    const acceleration = (speedInM(pointC.speed) - speedInM(pointA.speed)) / elapsedTime;
+    
     return acceleration;
   }
 }
