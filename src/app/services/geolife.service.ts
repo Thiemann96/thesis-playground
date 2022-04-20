@@ -88,7 +88,11 @@ export class GeolifeService {
     return points;
   }
 
-  // stay points kinda ok 
+
+  // stay point for one trajectory ok, 
+  // apply stay points to global map of the user (i.e. only show all stay points on the map)
+  // iterate over all paths extract stay points and show all stay points with popup on the map 
+  // after: implement OPTICS algorithm 
 
   public extractStayPoints(trajectory) {
     const distThreshold = 200; // meters
@@ -129,7 +133,6 @@ export class GeolifeService {
       }
       i = j;
     }
-    console.log(stayPoints);
     return stayPoints;
   }
 
