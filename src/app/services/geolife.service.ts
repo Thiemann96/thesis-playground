@@ -30,7 +30,6 @@ interface StayPoint {
   providedIn: "root",
 })
 export class GeolifeService {
-
   constructor(private http: HttpClient) {}
 
   // loads all trajectories from assets and converts them to GeolifeUser Arrays
@@ -81,7 +80,7 @@ export class GeolifeService {
         const pointToPush: Point = {
           lat: parseFloat(pointArr[0]),
           lng: parseFloat(pointArr[1]),
-          date: this.getDate(pointArr[5], pointArr[6])
+          date: this.getDate(pointArr[5], pointArr[6]),
         };
         points.push(pointToPush);
       }
@@ -89,41 +88,57 @@ export class GeolifeService {
     return points;
   }
 
+  // stay points kinda ok 
+
   public extractStayPoints(trajectory) {
     const distThreshold = 200; // meters
-    const timeThreshold = 15; // milliseconds
+    const timeThreshold = 15; // minutes
     const stayPoints = [];
-    let i = 0; 
-    while(i < trajectory.length){
-      let j = i++; 
-      while( j < trajectory.length){
-        const distance = trajectory[j].distanceCoveredMeters 
-        if( distance > distThreshold ){
-          const deltaTime = (trajectory[j].date - trajectory[i].date) / 60000 // convert to minutes
-          if(deltaTime > timeThreshold ){
+    const stayPointsCenter = []
+    let i = 0;
+    while (i < trajectory.length) {
+      let j = i + 1;
+      while (j < trajectory.length) {
+        const pointA = turf.point([trajectory[j].lat, trajectory[j].lng]);
+        const pointB = turf.point([trajectory[i].lng, trajectory[i].lng]);
+        const distance = turf.distance(pointA, pointB, { units:'meters'})
+        if (distance > distThreshold) {
+          const deltaTime = (trajectory[j].date - trajectory[i].date) / 60000; // convert to minutes
+          if (deltaTime > timeThreshold) {
             let features = turf.points([
-              [trajectory[j].lat,trajectory[j].lng],
-              [trajectory[i].lat,trajectory[i].lng],
-
-            ])
-            const center = turf.center(features);
+              [trajectory[j].lat, trajectory[j].lng],
+              [trajectory[i].lat, trajectory[i].lng],
+            ]);
+            const center = this.computeMeanCoordinate(
+              trajectory[j].lat,
+              trajectory[j].lng,
+              trajectory[i].lat,
+              trajectory[i].lng
+            );
             const sp: StayPoint = {
-              meanLatitude: center.geometry.coordinates[0],
-              meanLongitude: center.geometry.coordinates[1],
-              arrivalTime:trajectory[i].date,
-              leaveTime:trajectory[j].date,
-              
-            }
+              meanLatitude: center[0],
+              meanLongitude: center[1],
+              arrivalTime: trajectory[i].date,
+              leaveTime: trajectory[j].date,
+            };
             stayPoints.push(sp);
-          break;
           }
+          break;
         }
-        j += 1;
+        j = j + 1;
       }
-      i = j
+      i = j;
     }
     console.log(stayPoints);
-    return stayPoints
+    return stayPoints;
+  }
+
+  private computeMeanCoordinate(latA, lngA, latB, lngB): Array<number> {
+    const lats = latA + latB;
+    const lons = lngA + lngB;
+
+    const meanCoords = [lats / 2, lons / 2];
+    return meanCoords;
   }
 
   private filterNoise(trajectory) {
@@ -178,14 +193,15 @@ export class GeolifeService {
   private getSpeed(pointA, pointB) {
     // calculates the speed between two points
     // takes PointA{coords,dates} & PointB{coords,dates} as input
-    const from = turf.point([pointA.lat,pointA.lng]);
-    const to = turf.point([pointB.lat,pointB.lng]);
+    const from = turf.point([pointA.lat, pointA.lng]);
+    const to = turf.point([pointB.lat, pointB.lng]);
     const distance = turf.distance(from, to, { units: "meters" });
     const distanceKm = turf.distance(from, to, { units: "kilometers" });
 
-
     // convert to seconds, minutes, hours
-    const elapsedTime = this.convertMsToHours(Math.abs(pointA.date - pointB.date));
+    const elapsedTime = this.convertMsToHours(
+      Math.abs(pointA.date - pointB.date)
+    );
 
     // km per hour
     let speed = distanceKm / elapsedTime;
@@ -196,14 +212,15 @@ export class GeolifeService {
     // over a 3 point window get the acceleration
     // need: speed at point A, speed at point B, time taken
     // formula used : a = (velocity_final_s - velocity_initials_s) / duration_s);
-    // 15 m/s² 
-    // convert all values to meter and seconds 
-    const elapsedTime = (Math.abs(pointA.date - pointC.date)) / 1000; 
+    // 15 m/s²
+    // convert all values to meter and seconds
+    const elapsedTime = Math.abs(pointA.date - pointC.date) / 1000;
 
     const speedInM = (speedInKmH) => {
-      return ((( speedInKmH * 1000) / 60 ) / 60);
-    }
-    const acceleration = (speedInM(pointC.speedKmH) - speedInM(pointA.speedKmH)) / elapsedTime;
+      return (speedInKmH * 1000) / 60 / 60;
+    };
+    const acceleration =
+      (speedInM(pointC.speedKmH) - speedInM(pointA.speedKmH)) / elapsedTime;
     return acceleration;
   }
 }
