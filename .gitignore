@@ -1,2 +1,4 @@
 node_modules/
 .angular/
+src/app/tab2/tab2.page.html
+src/app/tab2/tab2.page.ts
