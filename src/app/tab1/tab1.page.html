@@ -39,7 +39,21 @@
       <ion-col>
         <div *ngIf="user" class="sidebar">
           <ion-label>Trajectories:</ion-label>
-          <ion-list>
+          <ion-card *ngIf="user.filteredT">
+            <ion-card-header>
+              <ion-card-subtitle>
+                <!-- Von {{user.filteredT[0][0].date.toLocaleString('de-DE', { timeZone:'Asia/Shanghai'}) }} bis {{user.filteredT[user.filteredT.length][0].date.toLocaleString('de-DE', { timeZone:'Asia/Shanghai'}) }}  -->
+
+              </ion-card-subtitle>
+              <ion-card-title>
+                Insgesamt {{user.filteredT.length}} entdeckte Stay points
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+
+            </ion-card-content>
+          </ion-card>
+          <!-- <ion-list>
             <ion-card *ngFor="let trajectory of user.filteredT">
               <ion-card-header>
                 <ion-card-subtitle>{{ trajectory.length }} total points</ion-card-subtitle>
@@ -56,9 +70,10 @@
                 </ion-item>
               </ion-card-content>
             </ion-card>
-          </ion-list>
+          </ion-list> -->
         </div>
       </ion-col>
     </ion-row>
+  <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
   </ion-grid>
 </ion-content>

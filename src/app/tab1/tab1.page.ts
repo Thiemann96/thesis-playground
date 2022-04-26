@@ -22,6 +22,7 @@ export class Tab1Page implements OnInit{
   user:any  
   activeTrajectory:any;
   stayPoints:any = [];
+  loading:boolean = false;
   constructor(
     private geolifeService: GeolifeService
   ) {}
@@ -30,13 +31,13 @@ export class Tab1Page implements OnInit{
     this.initMap();
     
   }
-  async ngOnInit(){
-    this.user = await this.geolifeService.getAllTrajectories();
+  ngOnInit(){
+   // this.user = await this.geolifeService.getAllTrajectories();
   }
   private initMap(): void {
     this.map = L.map('map', {
       center: [39.9, 116.4],
-      zoom: 7,
+      zoom: 12,
     })
 
     const tiles = L.tileLayer(
@@ -52,17 +53,23 @@ export class Tab1Page implements OnInit{
     tiles.addTo(this.map)
   }
 
-  calculateStayPoints(){
+   async  calculateStayPoints(){
+    this.loading = true
+    this.user = await this.geolifeService.getAllTrajectories();
+    const stayPointLayer = L.featureGroup();
     this.user.filteredT.map((trajectory)=>{
       const stayPoints = this.geolifeService.extractStayPoints(trajectory);
       this.stayPoints.push(stayPoints);
       stayPoints.map((point)=>{
         //const marker =   L.marker([point.meanLatitude,point.meanLongitude]).addTo(this.map);
-        L.circle([point.meanLatitude, point.meanLongitude],{ radius: 100, color:'purple'}).addTo(this.map)
-
+        L.circle([point.meanLatitude, point.meanLongitude],{ radius: 100, color:'purple'}).addTo(stayPointLayer)
        // marker.bindPopup(point.arrivalTime+"-"+point.leaveTime).openPopup();
       })
     })
+    stayPointLayer.addTo(this.map);
+    this.map.fitBounds(stayPointLayer.getBounds())
+    this.loading = false
+
   }
 
   loadToMap(trajectory) {
