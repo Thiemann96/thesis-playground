@@ -2,6 +2,9 @@ import { Component, OnInit } from "@angular/core";
 import * as L from "leaflet";
 import { GeolifeService } from "../services/geolife.service";
 
+import * as turf from "@turf/turf";
+import { FeatureCollection } from "@turf/turf";
+
 interface GeoLifeTrajectory {
   latslngs: [number, number][];
   dates: [string, string][];
@@ -27,6 +30,7 @@ export class Tab1Page implements OnInit {
   timeThreshold = 15;
   clusterEnabled:boolean = false;
   clusterLayer:any;
+  arrayPerCluster:any;
   countClusters; 
 
   constructor(private geolifeService: GeolifeService) {}
@@ -108,6 +112,47 @@ export class Tab1Page implements OnInit {
     this.countClusters = knownClusters.length;
   }
 
+  filterClusters(){
+    // this.clustered 
+    // this.clustered.length 
+    console.log(this.clusterLayer)
+    const arrayPerCluster:any = [];
+    for(let i = 0; i < this.countClusters;i++){
+      arrayPerCluster.push(
+        {
+          clusterId:i, 
+          points: []
+        }
+      )
+    }
+
+    this.clusterLayer.features.map(feature=>{
+      arrayPerCluster.map(cluster=>{
+        if (feature.properties.dbscan==="noise"){}
+        if (feature.properties.cluster === cluster.clusterId){
+          cluster.points.push(feature);
+        }
+      })
+    })
+    console.log(arrayPerCluster);
+    this.clearMap();
+
+    arrayPerCluster.map(cluster=>{
+      const points = turf.featureCollection([
+        ...cluster.points
+      ])
+      const hull = turf.convex(points);
+      let style = {
+        "color":cluster.points[0].properties.color
+      }
+      L.geoJSON(hull,{style}).addTo(this.map);
+
+    })
+    //assign centroid to cluster
+    this.arrayPerCluster = arrayPerCluster;
+  }
+
+
 
   calculateClusters() {
     const clustered = this.geolifeService.clusterStaypoints(
@@ -115,9 +160,7 @@ export class Tab1Page implements OnInit {
       this.distance2Threshold/1000,
       {}
     );
-
     this.clearMap();
-    console.log(clustered);
     this.clusterLayer = clustered;
 
     this.countingClusters();
@@ -181,13 +224,15 @@ export class Tab1Page implements OnInit {
             color = "black";
             break;
         }
+        feature.properties.color = color;
         L.circle(
           [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
-          { radius: 100, color: color }
+          { radius: 10, color: color }
         ).addTo(clusterLayer);
       
     });
     clusterLayer.addTo(this.map);
+    this.filterClusters();
     //this.map.fitBounds(clusterLayer.getBounds())
   }
 
