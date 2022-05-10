@@ -10,26 +10,6 @@
   <ion-grid>
     <ion-row>
       <ion-col>
-        <ion-item>
-          <ion-label>Upload trajectory</ion-label>
-        </ion-item>
-      </ion-col>
-      <ion-col>
-        <ion-button color="danger" expand="block" (click)="clearMap()"
-          >Clear map</ion-button
-        >
-      </ion-col>
-      <ion-col>
-        <ion-button
-          color="success"
-          expand="block"
-          (click)="calculateStayPoints()"
-          >Calculate stay points</ion-button
-        >
-      </ion-col>
-    </ion-row>
-    <ion-row>
-      <ion-col>
         <div class="map-container">
           <div class="map-frame">
             <div id="map"></div>
@@ -37,43 +17,66 @@
         </div>
       </ion-col>
       <ion-col>
+        <div class="sidebar">
+          <ion-row>
+            <ion-col>
+              <ion-card>
+                <ion-card-title>Stay points</ion-card-title>
+                <ion-item>
+                  <ion-label>Time in minutes:</ion-label>
+                  <ion-input (ionChange)="changeTimeThreshold($event)" value={{timeThreshold}} placeholder="time threshold"></ion-input>
+                </ion-item>
+                <ion-item>
+                  <ion-label>Distance in meters:</ion-label>
+                  <ion-input (ionChange)="changeDist1Threshold($event)" value={{distance1Threshold}} placeholder="distance threshold" ></ion-input>
+                </ion-item>
+                <ion-button
+                  color="success"
+                  expand="block"
+                  (click)="calculateStayPoints()"
+                >
+                  Calculate stay points
+                </ion-button>
+              </ion-card>
+            </ion-col>
+            <ion-col>
+              <ion-card>
+                <ion-card-title>Clusters</ion-card-title>
+                <ion-item>
+                  <ion-label>Distance in meters:</ion-label>
+                  <ion-input (ionChange)="changeDist2Threshold($event)" value={{distance2Threshold}} placeholder="Distance threshhold"></ion-input>
+                </ion-item>
+                <ion-button
+                  color="success"
+                  (click)="calculateClusters()"
+                  expand="full"
+                >
+                  Calculate clusters
+                </ion-button>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </div>
+        <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
         <div *ngIf="user" class="sidebar">
-          <ion-label>Trajectories:</ion-label>
           <ion-card *ngIf="user.filteredT">
             <ion-card-header>
               <ion-card-subtitle>
                 <!-- Von {{user.filteredT[0][0].date.toLocaleString('de-DE', { timeZone:'Asia/Shanghai'}) }} bis {{user.filteredT[user.filteredT.length][0].date.toLocaleString('de-DE', { timeZone:'Asia/Shanghai'}) }}  -->
-
               </ion-card-subtitle>
               <ion-card-title>
-                Insgesamt {{user.filteredT.length}} entdeckte Stay points
+                <p>
+                  Entdeckte Stay points: <b>{{stayPoints.length}}</b>
+                </p>
+                <p *ngIf="countClusters">
+                  Entdeckte Cluster: <b>{{countClusters}}</b>
+                </p>
               </ion-card-title>
             </ion-card-header>
-            <ion-card-content>
-
-            </ion-card-content>
+            <ion-card-content> </ion-card-content>
           </ion-card>
-          <!-- <ion-list>
-            <ion-card *ngFor="let trajectory of user.filteredT">
-              <ion-card-header>
-                <ion-card-subtitle>{{ trajectory.length }} total points</ion-card-subtitle>
-                <ion-card-title>
-                  {{ trajectory[0].date.toLocaleString('de-DE',
-                  {timeZone:'Asia/Shanghai'}) }} till {{
-                  trajectory[trajectory.length-1].date.toLocaleString('de-DE',{timeZone:'Asia/Shanghai'}) }}</ion-card-title
-                >
-              </ion-card-header>
-              <ion-card-content>
-                <ion-item>
-                  <ion-icon name="pin" slot="start"></ion-icon>
-                  <ion-button size="large" color="primary" fill="outline" slot="end" (click)="loadToMap(trajectory)">View</ion-button>
-                </ion-item>
-              </ion-card-content>
-            </ion-card>
-          </ion-list> -->
         </div>
       </ion-col>
     </ion-row>
-  <ion-progress-bar *ngIf="loading" type="indeterminate"></ion-progress-bar>
   </ion-grid>
 </ion-content>

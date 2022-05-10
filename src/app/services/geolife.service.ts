@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import * as turf from "@turf/turf";
+import { FeatureCollection } from "@turf/turf";
 
 // a geolife user has multiple geolife trajectories and one id for identification
 interface GeolifeUser {
@@ -89,23 +90,58 @@ export class GeolifeService {
   }
 
 
-  // stay point for one trajectory ok, 
-  // apply stay points to global map of the user (i.e. only show all stay points on the map)
-  // iterate over all paths extract stay points and show all stay points with popup on the map 
-  // after: implement OPTICS algorithm 
 
-  public extractStayPoints(trajectory) {
-    const distThreshold = 200; // meters
-    const timeThreshold = 15; // minutes
+  public cleanArray(stayPoints) {
+    const pointArray = [];
+    stayPoints.map((point) => {
+      point.map((realPoint) => {
+        pointArray.push(realPoint);
+      });
+    });
+    return pointArray;
+  }
+  // stay point for one trajectory ok,
+  // apply stay points to global map of the user (i.e. only show all stay points on the map)
+  // iterate over all paths extract y points and show all stay points with popup on the map
+  // after: implement OPTICS algorithm
+
+  public clusterStaypoints(staypoints, distance, options) {
+
+    const turfPoints = [];
+    staypoints.map((point) => {
+      const turfPoint = turf.point([point.meanLongitude, point.meanLatitude], {
+        arrival: point.arrivalTime,
+        leave: point.leaveTime,
+      });
+      turfPoints.push(turfPoint);
+    });
+    const collection = turf.featureCollection(turfPoints);
+    const clustered = turf.clustersDbscan(collection, distance);
+    return clustered;
+  }
+  public clusterOptics(stayPoints) {
+    console.log(stayPoints);
+    /**
+     * Notes on OPTICS clustering
+     *
+     * needs as input:
+     *      core distance : minimum value of radius to classify point as core point, if no core point => core distance = undefined
+     *      minPts : minimum number of points a core point should have
+     *      List of points (db)
+     */
+  }
+
+  t;
+  public extractStayPoints(trajectory, timeThreshold, distThreshold) {
     const stayPoints = [];
-    const stayPointsCenter = []
+    const stayPointsCenter = [];
     let i = 0;
     while (i < trajectory.length) {
       let j = i + 1;
       while (j < trajectory.length) {
         const pointA = turf.point([trajectory[j].lat, trajectory[j].lng]);
         const pointB = turf.point([trajectory[i].lng, trajectory[i].lng]);
-        const distance = turf.distance(pointA, pointB, { units:'meters'})
+        const distance = turf.distance(pointA, pointB, { units: "meters" });
         if (distance > distThreshold) {
           const deltaTime = (trajectory[j].date - trajectory[i].date) / 60000; // convert to minutes
           if (deltaTime > timeThreshold) {
