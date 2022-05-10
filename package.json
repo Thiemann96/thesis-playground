@@ -22,6 +22,7 @@
     "@angular/router": "~13.2.2",
     "@ionic/angular": "^6.0.0",
     "@turf/turf": "^6.5.0",
+    "bulma": "^0.9.3",
     "leaflet": "^1.7.1",
     "rxjs": "~6.6.0",
     "tslib": "^2.2.0",

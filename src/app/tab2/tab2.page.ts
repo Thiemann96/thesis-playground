@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { tag } from '@turf/turf';
 import { SearchService } from '../search.service';
 
 @Component({
@@ -25,6 +26,11 @@ export class Tab2Page implements OnInit{
       })
   }
 
+  onDeleteTag(event){
+    console.log("deleting tag", event);
+    const newArr = this.tags.filter(tag =>tag !== event)
+    this.tags = newArr;
+  }
   searchOnKeyUp(event) {
     let input = event.target.value;
     if(input.length > 1){

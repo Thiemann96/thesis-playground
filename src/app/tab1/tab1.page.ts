@@ -32,6 +32,7 @@ export class Tab1Page implements OnInit {
   clusterLayer:any;
   arrayPerCluster:any;
   countClusters; 
+  allPoints: any = [];
 
   constructor(private geolifeService: GeolifeService) {}
 
@@ -82,6 +83,8 @@ export class Tab1Page implements OnInit {
     this.stayPoints = [];
     this.user = await this.geolifeService.getAllTrajectories();
     const stayPointLayer = L.featureGroup();
+    console.log(this.user);
+    
 
     this.user.filteredT.map((trajectory) => {
       const stayPoints = this.geolifeService.extractStayPoints(trajectory, this.timeThreshold, this.distance1Threshold);
@@ -92,10 +95,16 @@ export class Tab1Page implements OnInit {
           radius: 100,
           color: "black",
         }).addTo(stayPointLayer);
+       trajectory.map(point=>{
+         const turfPoint = turf.point([point.lng, point.lat],{date:point.date})
+         this.allPoints.push(turfPoint)
+       })
         // marker.bindPopup(point.arrivalTime+"-"+point.leaveTime).openPopup();
       });
     });
     stayPointLayer.addTo(this.map);
+    this.allPoints = turf.featureCollection(this.allPoints);
+
     //this.map.fitBounds(stayPointLayer.getBounds())
     this.loading = false;
     this.clusterEnabled = true;
@@ -121,35 +130,41 @@ export class Tab1Page implements OnInit {
       arrayPerCluster.push(
         {
           clusterId:i, 
-          points: []
+          stayPoints: []
         }
       )
     }
-
     this.clusterLayer.features.map(feature=>{
       arrayPerCluster.map(cluster=>{
         if (feature.properties.dbscan==="noise"){}
         if (feature.properties.cluster === cluster.clusterId){
-          cluster.points.push(feature);
+          cluster.stayPoints.push(feature);
         }
       })
     })
-    console.log(arrayPerCluster);
     this.clearMap();
 
     arrayPerCluster.map(cluster=>{
       const points = turf.featureCollection([
-        ...cluster.points
+        ...cluster.stayPoints
       ])
       const hull = turf.convex(points);
       let style = {
-        "color":cluster.points[0].properties.color
+        "color":cluster.stayPoints[0].properties.color
       }
       L.geoJSON(hull,{style}).addTo(this.map);
-
+      cluster.pointsWithin = turf.pointsWithinPolygon(this.allPoints, hull)
+      cluster.hull = hull;
     })
     //assign centroid to cluster
+    console.log(arrayPerCluster);
+
     this.arrayPerCluster = arrayPerCluster;
+  }
+
+  moveToBinarySequence(){
+    // checks every point in the measurements and check in which cluster it lays 
+    // point will get annotated with property clusterId
   }
 
 
@@ -233,6 +248,7 @@ export class Tab1Page implements OnInit {
     });
     clusterLayer.addTo(this.map);
     this.filterClusters();
+
     //this.map.fitBounds(clusterLayer.getBounds())
   }
 
