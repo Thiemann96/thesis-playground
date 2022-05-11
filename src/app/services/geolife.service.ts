@@ -104,9 +104,7 @@ export class GeolifeService {
   // apply stay points to global map of the user (i.e. only show all stay points on the map)
   // iterate over all paths extract y points and show all stay points with popup on the map
   // after: implement OPTICS algorithm
-
-  public clusterStaypoints(staypoints, distance, options) {
-
+  public convertStaypointsToGEOJSON(staypoints){
     const turfPoints = [];
     staypoints.map((point) => {
       const turfPoint = turf.point([point.meanLongitude, point.meanLatitude], {
@@ -115,8 +113,13 @@ export class GeolifeService {
       });
       turfPoints.push(turfPoint);
     });
-    const collection = turf.featureCollection(turfPoints);
-    const clustered = turf.clustersDbscan(collection, distance);
+
+    return turfPoints;
+  }
+  public clusterStaypoints(staypoints, distance, options) {
+    const collection = turf.featureCollection(this.convertStaypointsToGEOJSON(staypoints));
+    const clustered = turf.clustersDbscan(collection, distance,{mutate:true});
+
     return clustered;
   }
   public clusterOptics(stayPoints) {

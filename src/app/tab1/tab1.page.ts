@@ -83,7 +83,6 @@ export class Tab1Page implements OnInit {
     this.stayPoints = [];
     this.user = await this.geolifeService.getAllTrajectories();
     const stayPointLayer = L.featureGroup();
-    console.log(this.user);
     
 
     this.user.filteredT.map((trajectory) => {
@@ -124,7 +123,6 @@ export class Tab1Page implements OnInit {
   filterClusters(){
     // this.clustered 
     // this.clustered.length 
-    console.log(this.clusterLayer)
     const arrayPerCluster:any = [];
     for(let i = 0; i < this.countClusters;i++){
       arrayPerCluster.push(
@@ -145,6 +143,7 @@ export class Tab1Page implements OnInit {
     this.clearMap();
 
     arrayPerCluster.map(cluster=>{
+      
       const points = turf.featureCollection([
         ...cluster.stayPoints
       ])
@@ -157,7 +156,6 @@ export class Tab1Page implements OnInit {
       cluster.hull = hull;
     })
     //assign centroid to cluster
-    console.log(arrayPerCluster);
 
     this.arrayPerCluster = arrayPerCluster;
   }
@@ -246,6 +244,9 @@ export class Tab1Page implements OnInit {
         ).addTo(clusterLayer);
       
     });
+    console.log("before convertign to geojson", this.stayPoints)
+    this.stayPoints = this.geolifeService.convertStaypointsToGEOJSON(this.stayPoints);
+    console.log("after converting to geojson",this.stayPoints)
     clusterLayer.addTo(this.map);
     this.filterClusters();
 
