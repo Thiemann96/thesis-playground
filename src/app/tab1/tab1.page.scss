@@ -16,3 +16,10 @@
   #map {
     height: 100%;
   }
+
+  th {
+    background-color:var(--ion-color-success, #2dd36f) !important
+  }
+  tr:nth-child(even) {
+    background-color:#9999;
+  }

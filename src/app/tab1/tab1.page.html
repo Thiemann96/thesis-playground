@@ -78,7 +78,24 @@
             </ion-card-header>
             <ion-card-content> </ion-card-content>
           </ion-card>
+          <ion-card>
+            <table>
+              <tr>
+                <th>Cluster Id</th>
+                <th>Centroid</th>
+                <th>Number of staypoints</th>
+                <th>Number of measurements</th>
+              </tr>
+              <tr *ngFor="let cluster of arrayPerCluster" [ngStyle]="{'color':cluster.stayPoints[0].properties.color}">
+                <td>{{cluster.clusterId}}</td>
+                <td>{{cluster.hull.geometry.coordinates[0][0]}}</td>
+                <td>{{cluster.stayPoints.length}} </td>
+                <td>{{cluster.pointsWithin.features.length}} </td>
+              </tr>
+            </table>
+          </ion-card>
         </div>
+        
       </ion-col>
     </ion-row>
   </ion-grid>
