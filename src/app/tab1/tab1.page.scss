@@ -1,25 +1,33 @@
-.map-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    margin: 30px;
-    height: 600px;
-  }
-  
-  .map-frame {
-    border: 2px solid black;
-    height: 100%;
-  }
-  
-  #map {
-    height: 100%;
-  }
-
-  th {
-    background-color:var(--ion-color-success, #2dd36f) !important
-  }
-  tr:nth-child(even) {
-    background-color:#9999;
-  }
+html, body, .map-container {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+body {
+  /* height of .navbar, customize with @navbar-height variable */
+  padding-top: 50px;
+}
+.navbar {
+  min-height: 50px;
+}
+#sidebar {
+  float: left;
+  height: 100%;
+  max-width: 100%;
+  width: 350px;
+}
+#map {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  height: 100%;
+  width: auto;
+}
+.sidebar-wrapper {
+  height: 100%;
+  position: relative;
+  width: 98%;
+}
+@media (max-width: 767px) {
+#sidebar {
+  display: none;
+}
+}
