@@ -3,7 +3,7 @@ import * as L from "leaflet";
 import { GeolifeService } from "../services/geolife.service";
 import * as turf from "@turf/turf";
 import { FeatureCollection } from "@turf/turf";
-import * as xmljs from 'xml-js';
+import * as xmljs from "xml-js";
 import { DatamanagerService } from "../services/datamanager.service";
 import { OpticsService } from "../services/optics.service";
 import { StaypointService } from "../services/staypoint.service";
@@ -36,16 +36,24 @@ export class Tab1Page implements OnInit {
   arrayPerCluster: any;
   countClusters;
   allPoints: any = [];
-  frequencies:any;
-  useFile:any = "";
-  selectOptions = ["path.csv","path2weeks.csv","path004.csv","path026.csv","path142.csv","path147.csv","path153_2011.csv","path153.csv"]
+  layerControl:any; 
+  frequencies: any;
+  useFile: any = "";
+  selectOptions = [
+    "path.csv",
+    "path2weeks.csv",
+    "path004.csv",
+    "path026.csv",
+    "path142.csv",
+    "path153_2011.csv",
+  ];
 
   constructor(
     private dataManager: DatamanagerService,
     private opticsService: OpticsService,
     private staypointService: StaypointService,
     private osmService: OsmService
-    ) {}
+  ) {}
 
   ionViewDidEnter(): void {
     this.initMap();
@@ -53,11 +61,8 @@ export class Tab1Page implements OnInit {
   ngOnInit() {
     // this.user = await this.geolifeService.getAllTrajectories();
   }
-  private initMap(): void {
-    this.map = L.map("map", {
-      center: [39.9, 116.4],
-      zoom: 11,
-    });
+  initMap(): void {
+
 
     const tiles = L.tileLayer(
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -68,8 +73,15 @@ export class Tab1Page implements OnInit {
           '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }
     );
+    const baseMaps = { "OSM": tiles }
 
-    tiles.addTo(this.map);
+
+    this.map = L.map("map", {
+      center: [39.9, 116.4],
+      zoom: 11,
+      layers : [tiles]
+    });
+    this.layerControl = L.control.layers(baseMaps).addTo(this.map);
   }
 
   changeDist1Threshold(event) {
@@ -87,19 +99,18 @@ export class Tab1Page implements OnInit {
     this.timeThreshold = value;
   }
 
-  changePath(event){
+  changePath(event) {
     console.log(event.target.value);
     const value = event.target.value;
     this.useFile = value;
   }
 
-  async loadFile(path){
+  async loadFile(path) {
     this.loading = true;
     this.user = await this.dataManager.getAllTrajectories(path);
     console.log(this.user);
     this.loading = false;
   }
-
 
   transformToBinary() {
     const finalBinarySequence = [];
@@ -177,36 +188,41 @@ export class Tab1Page implements OnInit {
       }
       map_arr.push(max_period);
     }
-    map_arr.map((frequency)=>{
+    map_arr.map((frequency) => {
       this.arrayPerCluster[frequency.id].frequency = frequency;
-    })
+    });
   }
 
-  clusterOptics(){
-    console.log(this.distance2Threshold)
-    const opticsCluster = this.opticsService.clusterOptics(this.stayPoints,this.distance2Threshold,3);
-    this.clearMap();    
-    opticsCluster.map((point)=>{
+  clusterOptics() {
+    const opticsCluster = this.opticsService.clusterOptics(
+      this.stayPoints.features,
+      this.distance2Threshold,
+      2
+    );
+    this.clearMap();
+    const opticsLayer = L.featureGroup();
+    opticsCluster.map((point) => {
       var geojsonMarkerOptions = {
         radius: 8,
-        fillColor: point.properties.color,
+        fillColor: "#fff",
         color: "#000",
         weight: 1,
         opacity: 1,
-        fillOpacity: 0.8
-    };
-    
-    L.geoJSON(point, {
+        fillOpacity: 0.8,
+      };
+
+      L.geoJSON(point, {
         pointToLayer: function (feature, latlng) {
-            return L.circleMarker(latlng, geojsonMarkerOptions);
-        }
-    }).addTo(this.map);
-    })
+          return L.circleMarker(latlng, geojsonMarkerOptions);
+        },
+      }).addTo(opticsLayer);
+    });
+    this.layerControl.addOverlay(opticsLayer, "OPTICS");
   }
 
   // triggers service function which provides all stay points in all given trajectories
   // sets stay points and cleans them for further use in clustering
-   calculateStayPoints() {
+  calculateStayPoints() {
     this.loading = true;
     this.stayPoints = [];
     // get all trajectories in the specified path/filename
@@ -226,111 +242,113 @@ export class Tab1Page implements OnInit {
 
     let geojsonMarkerOptions = {
       radius: 8,
-      fillColor: "#ff7800",
+      fillColor: "#000",
       color: "#000",
       weight: 1,
       opacity: 1,
-      fillOpacity: 0.8
-  };
+      fillOpacity: 0.8,
+    };
 
-  this.stayPoints = turf.featureCollection(this.stayPoints);
-  console.log(this.stayPoints)
-  const points = L.layerGroup();
-    this.stayPoints.features.map(p=>{
-      L.geoJSON(p, {
-        pointToLayer: function(p, latlng){
-          return L.circleMarker(latlng, geojsonMarkerOptions);
-        }
-      }).addTo(points);
-    })
-    points.addTo(this.map);
-  }
-
-  clusterDBMeans(){
-  }
-  
-    // triggers service function to calculate a DBSCAN on the trajectories
-    calculateClusters() {
-      this.clearMap();
-      const cluster = turf.clustersDbscan(this.stayPoints, this.distance2Threshold / 1000);
-      const clusterLayer = L.featureGroup();
-      cluster.features.map((feature) => {
-        let color;
-        // find a more "dynamic" way for coloring
-        switch (feature.properties.cluster) {
-          case 0:
-            color = "crimson";
-            break;
-          case 1:
-            color = "blue";
-            break;
-          case 2:
-            color = "green";
-            break;
-          case 3:
-            color = "purple";
-            break;
-          case 4:
-            color = "cyan";
-            break;
-          case 5:
-            color = "magenta";
-            break;
-          case 6:
-            color = "lime";
-            break;
-          case 7:
-            color = "brown";
-            break;
-          case 8:
-            color = "orange";
-            break;
-          case 9:
-            color = "yellow";
-            break;
-          case 10:
-            color = "indigo";
-            break;
-          case 11:
-            color = "navy";
-            break;
-          case 12:
-            color = "maroon";
-            break;
-          case 13:
-            color = "saddlebrown";
-            break;
-          case 14:
-            color = "teal";
-            break;
-          case 15:
-            color = "sienna";
-            break;
-          case 16:
-            color = "plum";
-            break;
-          default:
-            color = "black";
-            break;
-        }
-        feature.properties.color = color;
-        L.circle(
-          [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
-          { radius: 10, color: color }
-        ).addTo(clusterLayer);
-      });
-      clusterLayer.addTo(this.map);
-  
-      //this.map.fitBounds(clusterLayer.getBounds())
-    }
-    
-  csalculateClusters(){
+    this.stayPoints = turf.featureCollection(this.stayPoints);
     console.log(this.stayPoints);
-    const dbscanClusters = turf.clustersDbscan(this.stayPoints,this.distance2Threshold);
+    const points = L.layerGroup();
+    this.stayPoints.features.map((p) => {
+      L.geoJSON(p, {
+        pointToLayer: function (p, latlng) {
+          return L.circleMarker(latlng, geojsonMarkerOptions);
+        },
+      }).addTo(points);
+    });
+    this.layerControl.addOverlay(points, "Stay Points");
+  }
 
-    console.log(dbscanClusters);
-  } 
+  clusterDBMeans() {}
 
+  // triggers service function to calculate a DBSCAN on the trajectories
+  calculateClusters() {
+    this.clearMap();
+    const cluster = turf.clustersDbscan(
+      this.stayPoints,
+      this.distance2Threshold / 1000
+    );
+    const clusterLayer = L.featureGroup();
+    cluster.features.map((feature) => {
+      let color;
+      // find a more "dynamic" way for coloring
+      switch (feature.properties.cluster) {
+        case 0:
+          color = "crimson";
+          break;
+        case 1:
+          color = "blue";
+          break;
+        case 2:
+          color = "green";
+          break;
+        case 3:
+          color = "purple";
+          break;
+        case 4:
+          color = "cyan";
+          break;
+        case 5:
+          color = "magenta";
+          break;
+        case 6:
+          color = "lime";
+          break;
+        case 7:
+          color = "brown";
+          break;
+        case 8:
+          color = "orange";
+          break;
+        case 9:
+          color = "yellow";
+          break;
+        case 10:
+          color = "indigo";
+          break;
+        case 11:
+          color = "navy";
+          break;
+        case 12:
+          color = "maroon";
+          break;
+        case 13:
+          color = "saddlebrown";
+          break;
+        case 14:
+          color = "teal";
+          break;
+        case 15:
+          color = "sienna";
+          break;
+        case 16:
+          color = "plum";
+          break;
+        default:
+          color = "black";
+          break;
+      }
+      let geojsonMarkerOptions = {
+        radius: 8,
+        fillColor: color,
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8,
+      };
+      if(feature.properties.color !== "black"){
+        L.geoJSON(feature, {
+          pointToLayer: function (p, latlng) {
+            return L.circleMarker(latlng, geojsonMarkerOptions);
+          },
+        }).addTo(clusterLayer);
+      }
+    });
+    this.layerControl.addOverlay(clusterLayer,"DBSCAN");
+  }
   // arrange clusters in {id:0, pointsWithin:[<Points]} object array for further usage
   filterClusters() {
     const arrayPerCluster: any = [];
@@ -353,8 +371,8 @@ export class Tab1Page implements OnInit {
     arrayPerCluster.map((cluster) => {
       const points = turf.featureCollection([...cluster.stayPoints]);
       const hull = turf.convex(points);
-      const bbox = turf.bbox(hull)
-      hull.properties.bbox = bbox;    
+      const bbox = turf.bbox(hull);
+      hull.properties.bbox = bbox;
       let style = {
         color: cluster.stayPoints[0].properties.color,
       };
@@ -363,33 +381,38 @@ export class Tab1Page implements OnInit {
       cluster.hull = hull;
       let centroid = turf.centroid(cluster.hull);
       cluster.centroid = centroid;
-
     });
 
     this.arrayPerCluster = arrayPerCluster;
     this.triggerOSMInfo();
     //this.applyPPMModel();
 
-    this.arrayPerCluster.map(cluster=>{
-      const marker = L.marker(cluster.centroid.geometry.coordinates.reverse()).addTo(this.map);
+    this.arrayPerCluster.map((cluster) => {
+      const marker = L.marker(
+        cluster.centroid.geometry.coordinates.reverse()
+      ).addTo(this.map);
       const popup = L.popup()
-      // .setLatLng(cluster.hull.geometry.coordinates[0][0].reverse())
-      .setContent(`clusterId:${cluster.clusterId}<br> Total points in cluster:${cluster.pointsWithin.features.length}<br>Stay points:${cluster.stayPoints.length}<br>`)
+        // .setLatLng(cluster.hull.geometry.coordinates[0][0].reverse())
+        .setContent(
+          `clusterId:${cluster.clusterId}<br> Total points in cluster:${cluster.pointsWithin.features.length}<br>Stay points:${cluster.stayPoints.length}<br>`
+        );
       marker.bindPopup(popup);
-    })
+    });
   }
 
-  async triggerOSMInfo(){
-    this.arrayPerCluster.map(async(cluster)=>{
-      const xml = await this.osmService.getOSMInfo(cluster.hull.properties.bbox);
-      // parse xml as json 
-      let json:any= xmljs.xml2json(xml,{compact:true,spaces:4})
+  async triggerOSMInfo() {
+    this.arrayPerCluster.map(async (cluster) => {
+      const xml = await this.osmService.getOSMInfo(
+        cluster.hull.properties.bbox
+      );
+      // parse xml as json
+      let json: any = xmljs.xml2json(xml, { compact: true, spaces: 4 });
       json = JSON.parse(json);
-      // remove all objects with no tags 
-      json =  json.osm.node.filter(node=>node.tag)
+      // remove all objects with no tags
+      json = json.osm.node.filter((node) => node.tag);
       cluster.hull.properties.osmInfo = json;
-    })
-    console.log(this.arrayPerCluster)
+    });
+    console.log(this.arrayPerCluster);
   }
 
   clearMap() {

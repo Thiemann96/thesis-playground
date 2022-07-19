@@ -13,32 +13,30 @@ export class OpticsService {
 
   public clusterOptics(stayPoints, eps, minPts) {
     const orderedList = []; 
-    this.priorityQ = [];
-
+    console.log(eps,minPts)
     const that = this;
     this.optics_points = stayPoints;
     for(let j = 0; j < this.optics_points.length; j++){
       const point = this.optics_points[j];
       // point.properties.reachability_distance = undefined; 
-      if(!point.properties.processed){
+      if(point.properties.processed !== true){
+        point.properties.processed = true; 
         const neighbours = this.getNeighbours(point, eps);
         const clusterColor = this.getRandomColor();
-        point.properties.color = clusterColor;
-        point.properties.processed = true; 
         orderedList.push(point);
         const coreDistance = this.getCoreDistance(point, eps, minPts);
         if(coreDistance !== undefined){
+            this.priorityQ = [];
             this.updateOPTICS(neighbours, point, eps, minPts)
             for(let i = 0; i < this.priorityQ.length; i++){
               const queuedPoint = this.priorityQ[i]
-              if(!queuedPoint.properties.processed){
+              if(!this.priorityQ[i].properties.processed){
                 const neighbours_alt = that.getNeighbours(queuedPoint, eps);
-                queuedPoint.properties.processed = true;
-                queuedPoint.properties.color = clusterColor;
-                orderedList.push(queuedPoint);
-                const coreDistanceAlt = that.getCoreDistance(queuedPoint, eps, minPts);
+                this.priorityQ[i].properties.processed = true;
+                orderedList.push(this.priorityQ[i]);
+                const coreDistanceAlt = that.getCoreDistance(this.priorityQ[i], eps, minPts);
                 if(coreDistanceAlt !== undefined){
-                  that.updateOPTICS(neighbours_alt, queuedPoint, eps, minPts);
+                  that.updateOPTICS(neighbours_alt, this.priorityQ[i], eps, minPts);
                 }
               }
             }
@@ -51,6 +49,16 @@ export class OpticsService {
 }    )
     console.log("w noise", orderedList)
     console.log("after",noNoise)
+    
+    noNoise.map(p=>{
+      if(!p.properties.des){
+        p.properties.des = true;
+        const neigh = this.getNeighbours(p,eps);
+
+      }
+      
+    })
+
 
     return noNoise;
 
@@ -62,8 +70,9 @@ export class OpticsService {
     const that = this; 
     for(let k = 0; k < neighbours.length; k++){
       let otherPoint = neighbours[k];
-      if(!otherPoint.properties.processed) {
-        const new_distance = turf.distance(pt.geometry.coordinates, otherPoint.geometry.coordinates)
+      if(otherPoint.properties.processed !== undefined)
+      {
+        const new_distance = turf.distance(pt.geometry.coordinates, otherPoint.geometry.coordinates,{units:"meters"})
         const new_reachability_distance = Math.max(coreDistance, new_distance);
         if(otherPoint.properties.reachability_distance === undefined){
           otherPoint.properties.reachability_distance = new_reachability_distance;
@@ -84,8 +93,11 @@ export class OpticsService {
 
   private getNeighbours( pt, eps) {
     const neighbours = this.optics_points.filter((point) => {
-      const distance = turf.distance(pt.geometry.coordinates, point.geometry.coordinates, {units:"meters"});
-      if (distance <= eps) return point;
+      if(pt !== point){
+        const distance = turf.distance(pt.geometry.coordinates, point.geometry.coordinates, {units:"meters"});
+        if (distance < eps) return point;
+      }
+
     });
     return neighbours
   }
@@ -108,6 +120,7 @@ export class OpticsService {
   }
   // according to here https://www.geeksforgeeks.org/implementation-priority-queue-javascript/
   private removeQElement(point){
+    console.log("before",this.priorityQ)
     for(let i = 0; i < this.priorityQ.length;i++){
       if(this.priorityQ[i] === point){
         const firstQPart = this.priorityQ.slice(0,i);
@@ -116,22 +129,39 @@ export class OpticsService {
         break;
       }
     }
+  console.log("after",this.priorityQ)
+
   }
   
   // according to here https://www.geeksforgeeks.org/implementation-priority-queue-javascript/
   private insertQElement(point){
-    let contain = false;
-    for(let i = 0; i < this.priorityQ.length; i++){
+    let indexToInsert = this.priorityQ.length; 
+
+    for(let i = this.priorityQ.length - 1; i >= 0; i--){
       if(this.priorityQ[i].properties.reachability_distance > point.properties.reachability_distance){
-        this.priorityQ.splice(i, 0, point);
-        contain = true;
-        break;
+        indexToInsert = i; 
+      }
+      }
+      this.insertAt(point, indexToInsert)
+    }
+
+    private insertAt(point, index){
+      if(this.priorityQ.length === index){
+        this.priorityQ.push(point);
+      }
+      else {
+        let currentElement = this.priorityQ[index];
+        if(this.priorityQ[index] === undefined){ return false;}
+        this.priorityQ[index] = point
+        let length = this.priorityQ.length + 1; 
+        for(let pos = index + 1; pos < length; pos++){
+          let lastElement = this.priorityQ[pos];
+          this.priorityQ[pos] = currentElement; 
+          currentElement = lastElement
+        }
       }
     }
-    if(!contain){
-      this.priorityQ.push(point);
-    }
-  }
+  
 
   /** HELPERS */
 
