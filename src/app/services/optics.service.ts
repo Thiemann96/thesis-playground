@@ -13,7 +13,6 @@ export class OpticsService {
 
   public clusterOptics(stayPoints, eps, minPts) {
     const orderedList = []; 
-    console.log(eps,minPts)
     const that = this;
     this.optics_points = stayPoints;
     for(let j = 0; j < this.optics_points.length; j++){
@@ -22,7 +21,6 @@ export class OpticsService {
       if(point.properties.processed !== true){
         point.properties.processed = true; 
         const neighbours = this.getNeighbours(point, eps);
-        const clusterColor = this.getRandomColor();
         orderedList.push(point);
         const coreDistance = this.getCoreDistance(point, eps, minPts);
         if(coreDistance !== undefined){
@@ -45,19 +43,8 @@ export class OpticsService {
       }
     }
     const noNoise = orderedList.filter((point)=>
-{      return point.properties.reachability_distance;
+{      return point.properties.reachabilityDistance;
 }    )
-    console.log("w noise", orderedList)
-    console.log("after",noNoise)
-    
-    noNoise.map(p=>{
-      if(!p.properties.des){
-        p.properties.des = true;
-        const neigh = this.getNeighbours(p,eps);
-
-      }
-      
-    })
 
 
     return noNoise;
@@ -74,13 +61,13 @@ export class OpticsService {
       {
         const new_distance = turf.distance(pt.geometry.coordinates, otherPoint.geometry.coordinates,{units:"meters"})
         const new_reachability_distance = Math.max(coreDistance, new_distance);
-        if(otherPoint.properties.reachability_distance === undefined){
-          otherPoint.properties.reachability_distance = new_reachability_distance;
+        if(otherPoint.properties.reachabilityDistance === undefined){
+          otherPoint.properties.reachabilityDistance = new_reachability_distance;
           that.insertQElement(otherPoint);
         }
         else{
-          if(new_reachability_distance < otherPoint.properties.reachability_distance){
-            otherPoint.properties.reachability_distance = new_reachability_distance;
+          if(new_reachability_distance < otherPoint.properties.reachabilityDistance){
+            otherPoint.properties.reachabilityDistance = new_reachability_distance;
             that.removeQElement(otherPoint);
             that.insertQElement(otherPoint);
           }
@@ -97,7 +84,6 @@ export class OpticsService {
         const distance = turf.distance(pt.geometry.coordinates, point.geometry.coordinates, {units:"meters"});
         if (distance < eps) return point;
       }
-
     });
     return neighbours
   }
@@ -120,7 +106,6 @@ export class OpticsService {
   }
   // according to here https://www.geeksforgeeks.org/implementation-priority-queue-javascript/
   private removeQElement(point){
-    console.log("before",this.priorityQ)
     for(let i = 0; i < this.priorityQ.length;i++){
       if(this.priorityQ[i] === point){
         const firstQPart = this.priorityQ.slice(0,i);
@@ -129,8 +114,6 @@ export class OpticsService {
         break;
       }
     }
-  console.log("after",this.priorityQ)
-
   }
   
   // according to here https://www.geeksforgeeks.org/implementation-priority-queue-javascript/

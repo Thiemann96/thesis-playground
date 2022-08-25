@@ -24,14 +24,14 @@ export class DatamanagerService {
       const trajectory = this.parsePLTFile(t);
       return trajectory;
     });
-    const filteredT = finishedT.map((t) => {
+    let filteredT:any = finishedT.map((t) => {
       return this.filterNoise(t);
     });
-    const user = {
-      id: "000",
-      filteredT,
-    };
-    return user;
+    
+    filteredT = filteredT.map((t)=>{
+      return turf.featureCollection(t);
+    })
+    return filteredT;
   }
 
   private async getAllPaths(path) {
@@ -51,7 +51,8 @@ export class DatamanagerService {
     // lat, lng, alti, date string, time string
     csvArray = fileContent.split("\n");
     csvArray.splice(0, 6);
-    const geojson = []
+    const geojson = [];
+    const coords = [];
     // map array and extract lats lngs for leaflet
     csvArray.map((point, index) => {
       if (index !== csvArray.length - 1) {
