@@ -11,10 +11,10 @@ export class SilhouetteService {
   public calculateSilhouette(clusters){
     let sumSValues = 0;
 
-    for (let index = 0; index < clusters.length; index++) {
+    for (let index = 0; index < clusters.length-1; index++) {
       const element = clusters[index];
       const cohesion = this.calculateCohesion(element);
-      const seperation = this.calculateSeperation(element, clusters);
+      const seperation = this.calculateAvgDistanceToOtherCluster(element.points[0], clusters[index+1]);
       const normalizing = Math.max(cohesion, seperation)
       const s = (seperation - cohesion) / normalizing; 
       sumSValues += s;
@@ -25,42 +25,31 @@ export class SilhouetteService {
     return s
   }
 
+
+  // calculate mean distance from one point in the cluster to all other points in the cluster
   private calculateCohesion(cluster){
     let sumDistances = 0;
     const element = cluster.points[0];
-    for (let index = 0; index < cluster.points.length-1; index++) {
-      const distanceToOtherPoint = turf.distance(element, cluster.points[index+1], {units:"meters"});
+    for (let index = 0; index < cluster.points.length; index++) {
+      if(index === 0 ) continue;
+      const distanceToOtherPoint = turf.distance(element, cluster.points[index], {units:"meters"});
       sumDistances += distanceToOtherPoint;
 
     } 
-    const cohesion = (1/cluster.points.length-1) * sumDistances; 
-    console.log(cohesion, sumDistances)
+    // average with all points
+    const cohesion = (1/(cluster.points.length-1)) * sumDistances; 
     return cohesion;
   }
 
-  private calculateSeperation(cluster1, clusters){
-    let sumDistances = [];
-    // for every cluster
-    for (let index = 0; index < clusters.length; index++) {
-      const element = clusters[index];
-      if(element.id === cluster1.id) continue; 
-      else {
-        const avgDistances = this.calculateAvgDistanceToOtherCluster(cluster1, element);
-        sumDistances.push(avgDistances);
-      }
-    }
+  // mean distance from one point to the neighbouring cluster
+  // neighbouring cluster is found by calculating all values and selecting the minimal one 
+  
 
-    const minValue = this.findMinimumValueInArray(sumDistances);
-    const seperation = (1/cluster1.points.length) * minValue;
-    return seperation
-
-  }
-
-  private calculateAvgDistanceToOtherCluster(cluster1, cluster2){
+  private calculateAvgDistanceToOtherCluster(point, cluster2){
     let sumDistance = 0;
     for (let index = 0; index < cluster2.points.length; index++) {
-      const element = cluster2.points[index];
-      const distance = turf.distance(cluster1.points[0], element, {units:"meters"});
+      const element2 = cluster2.points[index];
+      const distance = turf.distance(point, element2, {units:"meters"});
       sumDistance += distance;
     }
     return (sumDistance / cluster2.points.length); 

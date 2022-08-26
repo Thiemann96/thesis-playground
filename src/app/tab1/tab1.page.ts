@@ -29,6 +29,13 @@ interface GeoLifeTrajectory {
  * 
  */
 
+
+/** Todo: 
+ * finish DB and silhouette 
+ * implement other data 
+ * check optics and dbmean 
+ */
+
 @Component({
   selector: "app-tab1",
   templateUrl: "tab1.page.html",
