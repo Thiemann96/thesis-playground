@@ -17,6 +17,7 @@ export class DbindexService {
 
   public dbindex(clusters){ 
     const maxedRValues = [];
+  
     for (let i = 0; i < clusters.length; i++) {
       const element = clusters[i];
       const r_values = [];
@@ -24,6 +25,7 @@ export class DbindexService {
         if( i === j ) continue;
         const element2 = clusters[j];
         const r = this.calculateR(element,element2);
+        const r2 = this.calculateR(element2, element);
         r_values.push(r);
       }
       const tmp = this.findMaxValueInArray(r_values);
@@ -31,6 +33,7 @@ export class DbindexService {
     } 
     const sumR = this.sumValuesInArray(maxedRValues);
     const db = (1/clusters.length) * sumR;
+    console.log(db);
     return db; 
   }
 
@@ -60,6 +63,9 @@ export class DbindexService {
     return avgDistance;
   }
 
+
+
+  /** HELPERS */
   private findMaxValueInArray(array){
     let maxValue; 
     for (let index = 0; index < array.length; index++) {

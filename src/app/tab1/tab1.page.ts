@@ -86,7 +86,7 @@ export class Tab1Page implements OnInit {
   ionViewDidEnter(): void {
     this.initMap();
     // load file and perform all clustering on it 
-    this.loadFile("path153_2011.csv");
+    this.loadFile("path004.csv");
     //this.loadFile("path142.csv");
 
 

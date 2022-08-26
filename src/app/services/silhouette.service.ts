@@ -20,7 +20,7 @@ export class SilhouetteService {
       sumSValues += s;
     }
 
-    const s = (1/clusters.length) * sumSValues; 
+    const s = (1/(clusters.length-1)) * sumSValues; 
     console.log(s); 
     return s
   }
