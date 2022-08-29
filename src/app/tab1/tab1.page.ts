@@ -63,6 +63,7 @@ export class Tab1Page implements OnInit {
   dbmeansResult:any;
   opticsResult:any;
   dbscanResult:any;
+  chicago: any; 
   gsmData:any;
   selectOptions = [
     "path.csv",
@@ -87,8 +88,8 @@ export class Tab1Page implements OnInit {
     this.initMap();
     // load file and perform all clustering on it 
     //this.loadFile("path004.csv");
-    //this.loadFile("path142.csv");
-    this.dataManager.getChicagoTrajectories();
+    this.loadFile("path142.csv");
+    //this.dataManager.getChicagoTrajectories();
 
 
   }
@@ -324,12 +325,17 @@ export class Tab1Page implements OnInit {
 
   async loadFile(path) {
     this.loading = true;
-    console.log("de")
-    this.gsmData = await this.dataManager.getGSMTrajectories();
-    
-    this.user = await this.dataManager.getAllTrajectories(path);
-    console.log(this.gsmData);
-    console.log(this.user);
+    try {
+      this.gsmData = await this.dataManager.getGSMTrajectories();
+      this.user = await this.dataManager.getAllTrajectories(path);
+      this.chicago = await this.dataManager.getChicagoTrajectories();
+      console.log("GSM",this.gsmData);
+      console.log("GeoLife", this.user);
+      console.log("Chicago", this.chicago)
+    } catch (error) {
+      console.log(error);
+    }
+
     // this.calculateStayPoints();
     // this.clusterDbmeans();
     // this.clusterOptics();

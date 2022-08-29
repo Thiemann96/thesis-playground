@@ -24,6 +24,8 @@ export class DatamanagerService {
     })
     let trajectories = await Promise.all(promises);
     const filtered = this.parseChicagoFile(trajectories);
+
+    return filtered;
   }
 
   private parseChicagoFile(fileContent){ 
@@ -31,6 +33,7 @@ export class DatamanagerService {
     const finalResult = [];
     csvArray.map(trajectory=>
       {
+        const newTrajectory = []
         try {
           trajectory.map(t=>{
             if(t.length > 50 && t.length < 70 && trajectory.length !== 27){
@@ -49,17 +52,18 @@ export class DatamanagerService {
               }
               splitArr.pop();
               splitArr.pop();
-              finalResult.push(splitArr);
+              const pointToPush = turf.point([splitArr[0], splitArr[1]], {date: splitArr[2]})
+              newTrajectory.push(pointToPush);
             }
-  
           })
         } catch (error) {
             console.log(error,trajectory);
           }
-
+        const collect = turf.featureCollection(newTrajectory)
+        finalResult.push(collect)
       })
-    console.log(finalResult)
-  }
+      return finalResult;
+    }
 
   private async getAllPathsDMCL(){
     const paths = await this.http
@@ -88,11 +92,21 @@ export class DatamanagerService {
   private parseGSMFile(fileContent){
     let csv = fileContent.split("\n");
     const geojson = []
+    let array = [];
     csv.map(c=>{
-      const pointArr = c.split(","); 
-      const datetopush = new Date(pointArr[3])
-      const pointToPush = turf.point([parseFloat(pointArr[2]), parseFloat(pointArr[1])],{date:datetopush})
-      geojson.push(pointToPush);
+      if(c === "n\r"){
+        console.log("new trajectory")
+        if(array.length > 3){
+          geojson.push(turf.featureCollection(array));
+        }
+        array = [];
+      }
+      else if (c.length > 0) {
+        const pointArr = c.split(","); 
+        const datetopush = new Date(pointArr[3])
+        const pointToPush = turf.point([parseFloat(pointArr[2]), parseFloat(pointArr[1])],{date:datetopush})
+        array.push(pointToPush);
+      }
     });
     return geojson;
 
