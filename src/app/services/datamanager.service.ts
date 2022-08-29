@@ -11,6 +11,94 @@ export class DatamanagerService {
   constructor(private http: HttpClient) {}
 
 
+  /** CHICAGO */
+
+  public async getChicagoTrajectories() {
+    const allPath = await this.getAllPathsDMCL();
+
+    const promises = await allPath.map(async(path)=>{
+      const data = await this.http
+        .get(path, { responseType: "text" })
+        .toPromise();
+      return data;
+    })
+    let trajectories = await Promise.all(promises);
+    const filtered = this.parseChicagoFile(trajectories);
+  }
+
+  private parseChicagoFile(fileContent){ 
+    const csvArray = fileContent.map(t=>t.split("\n"))
+    const finalResult = [];
+    csvArray.map(trajectory=>
+      {
+        try {
+          trajectory.map(t=>{
+            if(t.length > 50 && t.length < 70 && trajectory.length !== 27){
+              const splitArr = t.split("|");
+              splitArr[0] = parseFloat(splitArr[0])/100;
+              splitArr[1] = parseFloat(splitArr[1])/(-100);
+              let dateToEdit = splitArr[2];  
+              dateToEdit = parseFloat(dateToEdit.substring(0,3));
+              if(dateToEdit < 0){
+                dateToEdit += 24
+                splitArr[2] = new Date(`January 01, 2000 ${dateToEdit + splitArr[2].substring(3, dateToEdit.length) }`)
+                }
+              else {
+                splitArr[2] = new Date(`January 01, 2000 ${splitArr[2]}`)
+  
+              }
+              splitArr.pop();
+              splitArr.pop();
+              finalResult.push(splitArr);
+            }
+  
+          })
+        } catch (error) {
+            console.log(error,trajectory);
+          }
+
+      })
+    console.log(finalResult)
+  }
+
+  private async getAllPathsDMCL(){
+    const paths = await this.http
+      .get('./assets/data/dmcl/allpaths.txt', {responseType:"text"})
+      .toPromise();
+    const allPath = paths.split("\n").map((path)=>{
+      return path.substring(50,path.length);
+    });
+
+    return allPath;
+  }
+
+
+
+  /** GSM  */
+
+  public async getGSMTrajectories(){
+    const promises = await this.http
+      .get("./assets/10837.csv", {responseType: "text"})
+      .toPromise();
+    const fileContent = this.parseGSMFile(promises);
+
+    return fileContent;
+  }
+
+  private parseGSMFile(fileContent){
+    let csv = fileContent.split("\n");
+    const geojson = []
+    csv.map(c=>{
+      const pointArr = c.split(","); 
+      const datetopush = new Date(pointArr[3])
+      const pointToPush = turf.point([parseFloat(pointArr[2]), parseFloat(pointArr[1])],{date:datetopush})
+      geojson.push(pointToPush);
+    });
+    return geojson;
+
+  }
+
+  /**GEOLIFE */
   public async getAllTrajectories(paths) {
     const allPath = await this.getAllPaths(paths);
     const promises = await allPath.map(async (path) => {

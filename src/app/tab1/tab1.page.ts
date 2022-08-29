@@ -31,9 +31,8 @@ interface GeoLifeTrajectory {
 
 
 /** Todo: 
- * finish DB and silhouette 
- * implement other data 
- * check optics and dbmean 
+ * rework db index / verify db index 
+ * think about classifying 
  */
 
 @Component({
@@ -64,6 +63,7 @@ export class Tab1Page implements OnInit {
   dbmeansResult:any;
   opticsResult:any;
   dbscanResult:any;
+  gsmData:any;
   selectOptions = [
     "path.csv",
     "path2weeks.csv",
@@ -86,9 +86,9 @@ export class Tab1Page implements OnInit {
   ionViewDidEnter(): void {
     this.initMap();
     // load file and perform all clustering on it 
-    this.loadFile("path004.csv");
+    //this.loadFile("path004.csv");
     //this.loadFile("path142.csv");
-
+    this.dataManager.getChicagoTrajectories();
 
 
   }
@@ -324,18 +324,23 @@ export class Tab1Page implements OnInit {
 
   async loadFile(path) {
     this.loading = true;
+    console.log("de")
+    this.gsmData = await this.dataManager.getGSMTrajectories();
+    
     this.user = await this.dataManager.getAllTrajectories(path);
-    this.calculateStayPoints();
-    this.clusterDbmeans();
-    this.clusterOptics();
-    this.clusterDbscan();
-    console.log("DBSCAN",this.dbscanResult);
-    console.log("OPTICS",this.opticsResult);
-    console.log("DBMEANS",this.dbmeansResult);
-    this.calculateDbIndex(this.dbscanResult)
-    this.calculateSilhouette(this.dbscanResult);
-    this.loading = false;
-    const new_centroids = []
+    console.log(this.gsmData);
+    console.log(this.user);
+    // this.calculateStayPoints();
+    // this.clusterDbmeans();
+    // this.clusterOptics();
+    // this.clusterDbscan();
+    // console.log("DBSCAN",this.dbscanResult);
+    // console.log("OPTICS",this.opticsResult);
+    // console.log("DBMEANS",this.dbmeansResult);
+    // this.calculateDbIndex(this.dbscanResult)
+    // this.calculateSilhouette(this.dbscanResult);
+    // this.loading = false;
+    // const new_centroids = []
     // for (let index = 0; index < this.dbmeansResult.length; index++) {
     //   const element = this.dbmeansResult[index];
     //   const newC = await this.osmService.classifyCluster(element);
