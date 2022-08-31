@@ -20,18 +20,24 @@ export class DatamanagerService {
       const data = await this.http
         .get(path, { responseType: "text" })
         .toPromise();
+
       return data;
     })
+    const fixedAllPaths = allPath.map(p=>{
+      let newPath =  p.substring(25).replace(".txt","");
+      let newArrPath = newPath.split("-");
+      let newObjPath = {year: "20"+newArrPath[2], month: newArrPath[0], day: newArrPath[1]}
+      return newObjPath;
+    })
     let trajectories = await Promise.all(promises);
-    const filtered = this.parseChicagoFile(trajectories);
-
+    const filtered = this.parseChicagoFile(trajectories, fixedAllPaths);
     return filtered;
   }
 
-  private parseChicagoFile(fileContent){ 
+  private parseChicagoFile(fileContent, fixedAllPaths){ 
     const csvArray = fileContent.map(t=>t.split("\n"))
     const finalResult = [];
-    csvArray.map(trajectory=>
+    csvArray.map((trajectory, index)=>
       {
         const newTrajectory = []
         try {
@@ -40,14 +46,15 @@ export class DatamanagerService {
               const splitArr = t.split("|");
               splitArr[0] = parseFloat(splitArr[0])/100;
               splitArr[1] = parseFloat(splitArr[1])/(-100);
-              let dateToEdit = splitArr[2];  
-              dateToEdit = parseFloat(dateToEdit.substring(0,3));
-              if(dateToEdit < 0){
-                dateToEdit += 24
-                splitArr[2] = new Date(`January 01, 2000 ${dateToEdit + splitArr[2].substring(3, dateToEdit.length) }`)
+              let dateToEdit = splitArr[2]; 
+              dateToEdit = dateToEdit.split(":");
+              let hourPart = parseFloat(dateToEdit[0])
+              if(hourPart < 0){
+                hourPart += 24
+                splitArr[2] = new Date(fixedAllPaths[index].year, fixedAllPaths[index].month, fixedAllPaths[index].day, hourPart, dateToEdit[1], dateToEdit[2])
                 }
               else {
-                splitArr[2] = new Date(`January 01, 2000 ${splitArr[2]}`)
+                splitArr[2] = new Date(fixedAllPaths[index].year, fixedAllPaths[index].month, fixedAllPaths[index].day, dateToEdit[0], dateToEdit[1], dateToEdit[2])
   
               }
               splitArr.pop();

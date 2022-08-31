@@ -50,8 +50,8 @@ export class Tab1Page implements OnInit {
   stayPoints: any = [];
   loading: boolean = false;
   distance1Threshold = 200;
-  distance2Threshold = 300;
-  timeThreshold = 15;
+  distance2Threshold = 200;
+  timeThreshold = 5;
   clusterEnabled: boolean = false;
   clusterLayer: any;
   arrayPerCluster: any;
@@ -108,8 +108,8 @@ export class Tab1Page implements OnInit {
     );
     const baseMaps = { "OSM": tiles }
     this.map = L.map("map", {
-      center: [39.9, 116.4],
-      zoom: 11,
+      center: [41.85, -87.6500500],
+      zoom: 9,
       layers : [tiles]
     });
     this.layerControl = L.control.layers(baseMaps).addTo(this.map);
@@ -211,8 +211,11 @@ export class Tab1Page implements OnInit {
   
   clusterDbscan() {
     this.clearMap();
+    let des = this.chicago.map(t=>t);
+    des = turf.featureCollection(des);
+    console.log(des);
     const cluster = turf.clustersDbscan(
-      this.stayPoints,
+      des,
       this.distance2Threshold / 1000
     );
     const clusterResult = []
@@ -314,7 +317,7 @@ export class Tab1Page implements OnInit {
         }).addTo(clusterLayer);
       }
     });
-
+    console.log(this.dbscanResult)
 
     this.layerControl.addOverlay(clusterLayer,"DBSCAN");
   }
@@ -326,25 +329,25 @@ export class Tab1Page implements OnInit {
   async loadFile(path) {
     this.loading = true;
     try {
-      this.gsmData = await this.dataManager.getGSMTrajectories();
-      this.user = await this.dataManager.getAllTrajectories(path);
+      // this.gsmData = await this.dataManager.getGSMTrajectories();
+      // this.user = await this.dataManager.getAllTrajectories(path);
       this.chicago = await this.dataManager.getChicagoTrajectories();
-      console.log("GSM",this.gsmData);
-      console.log("GeoLife", this.user);
+      // console.log("GSM",this.gsmData);
+      // console.log("GeoLife", this.user);
       console.log("Chicago", this.chicago)
     } catch (error) {
       console.log(error);
     }
 
-    // this.calculateStayPoints();
-    // this.clusterDbmeans();
-    // this.clusterOptics();
-    // this.clusterDbscan();
+    // this.calculateStayPoints(this.chicago);
+    //  this.clusterDbmeans();
+    //  this.clusterOptics();
+     this.clusterDbscan();
     // console.log("DBSCAN",this.dbscanResult);
     // console.log("OPTICS",this.opticsResult);
     // console.log("DBMEANS",this.dbmeansResult);
-    // this.calculateDbIndex(this.dbscanResult)
-    // this.calculateSilhouette(this.dbscanResult);
+    this.calculateDbIndex(this.dbmeansResult)
+    this.calculateSilhouette(this.dbmeansResult);
     // this.loading = false;
     // const new_centroids = []
     // for (let index = 0; index < this.dbmeansResult.length; index++) {
@@ -354,13 +357,13 @@ export class Tab1Page implements OnInit {
     // }
   }
 
-  calculateStayPoints() {
+  calculateStayPoints(trajectories) {
     this.loading = true;
     this.stayPoints = [];
     // get all trajectories in the specified path/filename
 
     // perform stay point extraction with the input values for time and dist threshold
-    this.user.map((trajectory) => {
+    trajectories.map((trajectory) => {
       const stayPoints = this.staypointService.extractStayPoints(
         trajectory.features,
         this.timeThreshold,
@@ -461,6 +464,34 @@ export class Tab1Page implements OnInit {
     this.silhouetteService.calculateSilhouette(clusters);
   }
 
+  showFeatureCollectionOnMap(featCollec){
+    console.log(featCollec)
+    let geojsonMarkerOptions = {
+      radius: 2,
+      fillColor: "#000",
+      color: "#000",
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.8,
+    };
+    const geojsonlayer = L.layerGroup();
+    // featCollec.map(p=>{
+    //   L.geoJSON(p).addTo(geojsonlayer)
+
+    // })
+    for (let i = 0; i < 10; i++) {
+      console.log(`Loading new trajectory ${i}/10`,i);
+      const element = featCollec[i];
+      for (let j = 0; j < element.features.length; j++) 
+      {
+        const element2 = element.features[j];
+        L.circleMarker(element2.geometry.coordinates,geojsonMarkerOptions).addTo(geojsonlayer);
+
+      }      
+    }
+    this.layerControl.addOverlay(geojsonlayer,"Chiraq");
+  }
+
   /** UI HELPER FUNCTIONS */
 
   
@@ -529,6 +560,8 @@ export class Tab1Page implements OnInit {
     }
     return sectionArray;
   }
+
+
 
   applyPPMModel() {
     // gets as input X binary sequence and T time threshold max

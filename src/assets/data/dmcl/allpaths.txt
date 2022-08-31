@@ -1,8 +1,3 @@
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata010607.txt
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata01.txt
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata_02.txt
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata02.txt
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata03.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-10-01-01.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-10-10-01.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-11-03-01.txt
@@ -35,7 +30,6 @@
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-13-01.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-13-02.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-15-02.txt
-/home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-21-02s.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-21-02.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-22-01.txt
 /home/eric/Documents/Master/thesis-playground/src/assets/data/dmcl/gpsdata-8-22-02.txt

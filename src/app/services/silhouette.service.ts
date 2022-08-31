@@ -14,6 +14,7 @@ export class SilhouetteService {
     for (let index = 0; index < clusters.length-1; index++) {
       const element = clusters[index];
       const cohesion = this.calculateCohesion(element);
+      // TODO: select the minimum value here !!!!!!!!!!
       const seperation = this.calculateAvgDistanceToOtherCluster(element.points[0], clusters[index+1]);
       const normalizing = Math.max(cohesion, seperation)
       const s = (seperation - cohesion) / normalizing; 
