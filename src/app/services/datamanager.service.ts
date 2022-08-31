@@ -23,6 +23,9 @@ export class DatamanagerService {
 
       return data;
     })
+    // extracts the date from the file name 
+    // file name usually is like this : gpsdata-8-01-03.txt
+    // americans.... 
     const fixedAllPaths = allPath.map(p=>{
       let newPath =  p.substring(25).replace(".txt","");
       let newArrPath = newPath.split("-");
@@ -41,7 +44,7 @@ export class DatamanagerService {
       {
         const newTrajectory = []
         try {
-          trajectory.map(t=>{
+          trajectory.map((t,index2)=>{
             if(t.length > 50 && t.length < 70 && trajectory.length !== 27){
               const splitArr = t.split("|");
               splitArr[0] = parseFloat(splitArr[0])/100;
@@ -49,18 +52,27 @@ export class DatamanagerService {
               let dateToEdit = splitArr[2]; 
               dateToEdit = dateToEdit.split(":");
               let hourPart = parseFloat(dateToEdit[0])
+              // like mentioned in the .doc file hour parts have to be added a 24 if its after 7pm ... 
               if(hourPart < 0){
                 hourPart += 24
                 splitArr[2] = new Date(fixedAllPaths[index].year, fixedAllPaths[index].month, fixedAllPaths[index].day, hourPart, dateToEdit[1], dateToEdit[2])
                 }
               else {
                 splitArr[2] = new Date(fixedAllPaths[index].year, fixedAllPaths[index].month, fixedAllPaths[index].day, dateToEdit[0], dateToEdit[1], dateToEdit[2])
-  
+
               }
+              // erase last two elements as they are not needed 
               splitArr.pop();
               splitArr.pop();
               const pointToPush = turf.point([splitArr[0], splitArr[1]], {date: splitArr[2]})
-              newTrajectory.push(pointToPush);
+              if(newTrajectory.length>1){
+                const pointEarlier = newTrajectory[newTrajectory.length-1]
+                const elapsedTime = pointToPush.properties.date - pointEarlier.properties.date;
+                if(elapsedTime > 10000) newTrajectory.push(pointToPush);
+              }
+              else {
+                newTrajectory.push(pointToPush);
+              }
             }
           })
         } catch (error) {
@@ -81,6 +93,10 @@ export class DatamanagerService {
     });
 
     return allPath;
+  }
+
+  private filterDMCLdata(trajectories){
+
   }
 
 
