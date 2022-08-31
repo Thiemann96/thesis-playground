@@ -209,13 +209,13 @@ export class Tab1Page implements OnInit {
 
   }
   
+
+
   clusterDbscan() {
     this.clearMap();
-    let des = this.chicago.map(t=>t);
-    des = turf.featureCollection(des);
-    console.log(des);
+
     const cluster = turf.clustersDbscan(
-      des,
+      this.stayPoints,
       this.distance2Threshold / 1000
     );
     const clusterResult = []
@@ -335,6 +335,9 @@ export class Tab1Page implements OnInit {
       // console.log("GSM",this.gsmData);
       // console.log("GeoLife", this.user);
       console.log("Chicago", this.chicago)
+      this.calculateStayPoints(this.chicago);
+      this.clusterDbscan();
+
     } catch (error) {
       console.log(error);
     }
@@ -342,7 +345,6 @@ export class Tab1Page implements OnInit {
     // this.calculateStayPoints(this.chicago);
     //  this.clusterDbmeans();
     //  this.clusterOptics();
-     this.clusterDbscan();
     // console.log("DBSCAN",this.dbscanResult);
     // console.log("OPTICS",this.opticsResult);
     // console.log("DBMEANS",this.dbmeansResult);
@@ -479,8 +481,7 @@ export class Tab1Page implements OnInit {
     //   L.geoJSON(p).addTo(geojsonlayer)
 
     // })
-    for (let i = 0; i < 10; i++) {
-      console.log(`Loading new trajectory ${i}/10`,i);
+    for (let i = 0; i < featCollec.length; i++) {
       const element = featCollec[i];
       for (let j = 0; j < element.features.length; j++) 
       {
@@ -597,6 +598,21 @@ export class Tab1Page implements OnInit {
     map_arr.map((frequency) => {
       this.arrayPerCluster[frequency.id].frequency = frequency;
     });
+  }
+
+
+  allPointsOneFeatureCollec(arrayFeatCollec){
+    const newArr = []; 
+    for (let index = 0; index < arrayFeatCollec.length; index++) {
+      const element = arrayFeatCollec[index];
+      for (let j = 0; j < element.features.length; j++) {
+        const element2 = element.features[j];
+        newArr.push(element2);       
+      }
+    }
+    const newFeatCollec = turf.featureCollection(newArr);
+    console.log(newFeatCollec)
+    return newFeatCollec;
   }
 
 }
