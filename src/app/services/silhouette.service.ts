@@ -8,7 +8,7 @@ export class SilhouetteService {
 
   constructor() { }
 
-  public calculateSilhouette(clusters){
+  public getSilhouetteCoefficient(clusters){
     let sumSValues = 0;
 
     for (let index = 0; index < clusters.length-1; index++) {
@@ -22,7 +22,6 @@ export class SilhouetteService {
     }
 
     const s = (1/(clusters.length-1)) * sumSValues; 
-    console.log(s); 
     return s
   }
 

@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from "@angular/core";
+import { Component } from "@angular/core";
 import * as L from "leaflet";
 import * as turf from "@turf/turf";
 import { DatamanagerService } from "../services/datamanager.service";
@@ -55,7 +55,6 @@ export class Tab1Page {
     private silhouetteService: SilhouetteService,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private _elementRef : ElementRef
   ) {}
 
   ionViewDidEnter(): void {
@@ -96,6 +95,7 @@ export class Tab1Page {
       message: `Loading data from ${path} `,
     });
     loadingScreen.present();
+    this.clearMap();
     switch (path) {
       case "geolife":
         this.data = await this.dataManager.getGeolifeTrajectories(
@@ -111,17 +111,15 @@ export class Tab1Page {
       default:
         break;
     }
-
     this.map.setView(this.data[0].features[0].geometry.coordinates);
     // this.showSinglePointsOnMap();
     this.dataLoadingDone = true;
     loadingScreen.dismiss();
   }
 
-  calculateStayPoints() {
+  getStayPoints() {
     this.stayPoints = [];
     // get all trajectories in the specified path/filename
-
     // perform stay point extraction with the input values for time and dist threshold
     this.data.map((trajectory) => {
       const stayPoints = this.staypointService.extractStayPoints(
@@ -134,7 +132,6 @@ export class Tab1Page {
     // geojson for all points
     // clean array
     this.stayPoints = this.staypointService.cleanArray(this.stayPoints);
-
     let geojsonMarkerOptions = {
       radius: 8,
       fillColor: "#000",
@@ -145,7 +142,6 @@ export class Tab1Page {
     };
 
     this.stayPoints = turf.featureCollection(this.stayPoints);
-    console.log("Stay points", this.stayPoints);
     const points = L.layerGroup();
     this.stayPoints.features.map((p) => {
       L.geoJSON(p, {
@@ -162,6 +158,8 @@ export class Tab1Page {
         },
       }).addTo(points);
     });
+
+
     this.layerControl.addOverlay(points, `Stay Points, distance:${this.stayPointDistance}; time:${this.stayPointTime}`);
     if(this.lastActivatedLayer) this.lastActivatedLayer.remove();
     this.lastActivatedLayer = points;
@@ -183,10 +181,18 @@ export class Tab1Page {
       this.epsDBMeans,
       this.minPtsDBMeans
     );
-    this.dbmeansResult = centroids;
-    const clusterPoints = centroids.map((c) => c.points);
-    this.showFeatureCollectionOnMap(this.dbmeansResult, `DBMeans, eps:${this.epsDBMeans}, minPts:${this.minPtsDBMeans}`);
+    const clusterResult = {
+      "dbIndex":null,
+      "silhouetteCoefficient":null,
+      clusters:centroids
+    };
+
+    clusterResult.dbIndex = this.dbIndexService.getDbIndex(clusterResult.clusters);
+    clusterResult.silhouetteCoefficient = this.silhouetteService.getSilhouetteCoefficient(clusterResult.clusters);
+    this.dbmeansResult = clusterResult;
+    this.showFeatureCollectionOnMap(clusterResult, `DBMeans, eps:${this.epsDBMeans}, minPts:${this.minPtsDBMeans}`);
     this.showToastMessage("DBMeans done!", 1000, "bottom");
+    console.log(this.layerControl)
     loadingScreen.dismiss();
   }
 
@@ -196,29 +202,34 @@ export class Tab1Page {
     });
     loadingScreen.present();
     const cluster = turf.clustersDbscan(this.stayPoints, this.epsDBSCAN / 1000);
-    const clusterResult = [];
+    const clusterResult = {
+      "dbIndex":null,
+      "silhouetteCoefficient":null,
+      clusters: []
+    };
     for (let index = 0; index < cluster.features.length; index++) {
       const element = cluster.features[index];
       const clusterId = element.properties.cluster;
       if (element.properties.dbscan !== "noise") {
-        if (clusterResult[clusterId] === undefined) {
+        if (clusterResult.clusters[clusterId] === undefined) {
           // create new entry
           const cluster = { id: clusterId, points: [element], centroid: null };
-          clusterResult.push(cluster);
+          clusterResult.clusters.push(cluster);
         } else {
-          clusterResult[clusterId].points.push(element);
+          clusterResult.clusters[clusterId].points.push(element);
         }
       }
     }
-    for (let index = 0; index < clusterResult.length; index++) {
-      const element = clusterResult[index];
-      const tmp0 = turf.featureCollection(element.points);
+    for (let index = 0; index < clusterResult.clusters.length; index++) {
+      const element = clusterResult.clusters[index];
+      const tmp0 = turf.featureCollection(element .points);
       const centroid = turf.center(tmp0);
       element.centroid = centroid;
     }
+    clusterResult.dbIndex = this.dbIndexService.getDbIndex(clusterResult.clusters);
+    clusterResult.silhouetteCoefficient = this.silhouetteService.getSilhouetteCoefficient(clusterResult.clusters);
     this.dbscanResult = clusterResult;
     loadingScreen.dismiss();
-
     this.showFeatureCollectionOnMap(clusterResult, `DBSCAN, eps:${this.epsDBSCAN}, minPts:${this.minPtsDBSCAN}`);
   }
 
@@ -260,6 +271,7 @@ export class Tab1Page {
       element.centroid = centroid;
     }
     this.opticsResult = clusterResult;
+
     this.showFeatureCollectionOnMap(this.opticsResult, "OPTICS");
     loadingScreen.dismiss();
     return;
@@ -267,7 +279,7 @@ export class Tab1Page {
 
   showFeatureCollectionOnMap(data, name) {
     const layer = L.featureGroup();
-    data.map((cluster) => {
+    data.clusters.map((cluster) => {
       const geojsonMarkerOptions = {
         radius: 8,
         fillColor: this.getRandomColor(),
@@ -284,7 +296,7 @@ export class Tab1Page {
               marker.openTooltip();
             });
             marker.bindTooltip(
-              `<b>Cluster ID</b> ${cluster.id}<br> <b> Number of stay points: ${cluster.points.length}`
+              `<b>Cluster ID</b> ${cluster.id}<br> <b> Number of stay points: ${cluster.points.length}<br> DB Index: ${data.dbIndex} <br> Silhouette coefficient: ${data.silhouetteCoefficient}`
             );
             return marker;
           },
@@ -357,11 +369,4 @@ export class Tab1Page {
     } else return this.getRandomColor();
   }
 
-  calculateDbIndex(clusters) {
-    this.dbIndexService.dbindex(clusters);
-  }
-
-  calculateSilhouette(clusters) {
-    this.silhouetteService.calculateSilhouette(clusters);
-  }
 }

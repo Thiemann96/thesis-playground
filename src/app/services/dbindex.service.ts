@@ -15,7 +15,7 @@ export class DbindexService {
    *  average of 
    */
 
-  public dbindex(clusters){ 
+  public getDbIndex(clusters){ 
     const maxedRValues = [];
   
     for (let i = 0; i < clusters.length; i++) {
@@ -33,7 +33,6 @@ export class DbindexService {
     } 
     const sumR = this.sumValuesInArray(maxedRValues);
     const db = (1/clusters.length) * sumR;
-    console.log(db);
     return db; 
   }
 
