@@ -79,7 +79,7 @@ export class DatamanagerService {
             console.log(error,trajectory);
           }
         const collect = turf.featureCollection(newTrajectory)
-        finalResult.push(collect)
+        if(collect.features.length>1) finalResult.push(collect)
       })
       return finalResult;
     }
@@ -118,7 +118,6 @@ export class DatamanagerService {
     let array = [];
     csv.map(c=>{
       if(c === "n\r"){
-        console.log("new trajectory")
         if(array.length > 3){
           geojson.push(turf.featureCollection(array));
         }
@@ -127,7 +126,7 @@ export class DatamanagerService {
       else if (c.length > 0) {
         const pointArr = c.split(","); 
         const datetopush = new Date(pointArr[3])
-        const pointToPush = turf.point([parseFloat(pointArr[2]), parseFloat(pointArr[1])],{date:datetopush})
+        const pointToPush = turf.point([parseFloat(pointArr[1]), parseFloat(pointArr[2])],{date:datetopush})
         array.push(pointToPush);
       }
     });
@@ -136,7 +135,7 @@ export class DatamanagerService {
   }
 
   /**GEOLIFE */
-  public async getAllTrajectories(paths) {
+  public async getGeolifeTrajectories(paths) {
     const allPath = await this.getAllPaths(paths);
     const promises = await allPath.map(async (path) => {
       const data = await this.http
@@ -154,8 +153,9 @@ export class DatamanagerService {
     });
     
     filteredT = filteredT.map((t)=>{
-      return turf.featureCollection(t);
+      return turf.featureCollection(t);;
     })
+
     return filteredT;
   }
 

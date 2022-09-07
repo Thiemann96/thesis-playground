@@ -1,11 +1,3 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button [text]="back" defaultHref="/"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Chen et. al.</ion-title>
-  </ion-toolbar>
-</ion-header>
 <ion-content>
   <div class="map-container">
     <div id="sidebar">
@@ -14,138 +6,122 @@
           <div class="panel-heading">
             <h3 class="panel-title">Controls</h3>
           </div>
-          <ion-list>
-            <ion-list-header>
-              <ion-label>
-                Choose file
-              </ion-label>
-            </ion-list-header>
-
-            <ion-item>
-              <ion-label>Path file</ion-label>
-              <ion-select (ionChange)="loadFile($event.target.value)" placeholder="select One">
-                <ion-select-option *ngFor="let option of selectOptions"  value="{{option}}">{{option}}</ion-select-option>
-              </ion-select>
-            </ion-item>
-          </ion-list>
-          <ion-accordion-group>
-            <ion-accordion>
-              <ion-item slot="header">
-                <ion-label>Stay point extraction</ion-label>
+          <ion-accordion-group [value]="['first']">
+            <ion-accordion value="first">
+              <ion-item color="light" slot="header">
+                <ion-label><b>1.</b> Choose Data Source</ion-label>
+              </ion-item>
+              <ion-list slot="content">
+              <ion-radio-group (ionChange)="loadDataSource($event.target.value)">            
+                <ion-item>
+                  <ion-label>GeoLife(Beijing)</ion-label>
+                  <ion-radio slot="start" value="geolife"></ion-radio>
+                </ion-item>
+                <ion-item>
+                  <ion-label>DMCL(Chicago)</ion-label>
+                  <ion-radio slot="start" value="dmcl"></ion-radio>
+                </ion-item>
+                <ion-item>
+                  <ion-label>GSM(Brazil)</ion-label>
+                  <ion-radio slot="start" value="gsm"></ion-radio>
+                </ion-item>
+              </ion-radio-group>
+            </ion-list>
+          </ion-accordion>
+            <ion-accordion [disabled]="!dataLoadingDone">
+              <ion-item color="light" slot="header">
+                <ion-label><b>2.</b>Stay point extraction</ion-label>
               </ion-item>
               <ion-list slot="content">
                 <ion-item>
-                  <ion-label>Time in Minutes:</ion-label>
+                  <ion-label position="stacked">Threshold for time(min):</ion-label>
                   <ion-input
-                    (ionChange)="changeTimeThreshold($event)"
-                    value="{{timeThreshold}}"
+                    (ionChange)="setStayPointTime($event)"
+                    value="{{stayPointTime}}"
                     placeholder="time threshold"
                   >
                   </ion-input>
                 </ion-item>
                 <ion-item>
-                  <ion-label>Distance in Meters:</ion-label>
+                  <ion-label position="stacked">Threshold for distance(meters):</ion-label>
                   <ion-input
-                    (ionChange)="changeDist1Threshold($event)"
-                    value="{{distance1Threshold}}"
+                    (ionChange)="setStayPointDistance($event)"
+                    value="{{stayPointDistance}}"
                     placeholder="distance threshold"
                   ></ion-input>
                 </ion-item>
-                <ion-item>
-                  <ion-button
-                    color="success"
-                    (click)="calculateStayPoints()"
-                    size="small"
-                  >
-                    Stay point detection
-                  </ion-button>
-                </ion-item>
+                <ion-button
+                (click)="calculateStayPoints()"
+                size="small">
+                Stay-Point detection
+              </ion-button>
               </ion-list>
             </ion-accordion>
-            <ion-accordion>
-              <ion-item slot="header">
-                <ion-label>Clustering</ion-label>
+            <ion-accordion  [disabled]="!stayPointsDone">
+              <ion-item color="light" slot="header">
+                <ion-label>DBSCAN</ion-label>
               </ion-item>
               <ion-list slot="content">
                 <ion-item>
-                  <ion-label>Distance in Meters:</ion-label>
+                  <ion-label position="stacked" >Value for eps:</ion-label>
                   <ion-input
-                    (ionChange)="changeDist2Threshold($event)"
-                    value="{{distance2Threshold}}"
+                    (ionChange)="setEpsDBSCAN($event)"
+                    value="{{epsDBSCAN}}"
                     placeholder="Distance threshhold"
                   ></ion-input>
                 </ion-item>
                 <ion-item>
-                  <ion-button
-                    color="success"
-                    (click)="clusterOptics()"
-                    expand="full"
-                  >
-                    Calculate OPTICS clusters
-                  </ion-button>
+                  <ion-label position="stacked">Value for minPts</ion-label>
+                  <ion-input
+                    (ionChange)="setMinPtsDBSCAN($event)"
+                    value="{{minPtsDBSCAN}}"
+                    placeholde="minPts"
+                    ></ion-input>
                 </ion-item>
-                <ion-item>
-                  <ion-button
-                    color="success"
-                    (click)="calculateClusters()"
-                    expand="full"
-                  >
-                    Calculate DBSCAN
-                  </ion-button>
-                </ion-item>
-                <ion-item>
-                  <ion-button
-                    color="success"
-                    (click)="clusterDBMeans()"
-                    expand="full"
-                  >
-                    Calculate DBMeans
-                  </ion-button>
-                </ion-item>
-              </ion-list>
+                <ion-button (click)="getDBSCAN()">DBSCAN</ion-button>
+                </ion-list>
             </ion-accordion>
-          </ion-accordion-group>
-          <ion-button (click)="showFeatureCollectionOnMap(chicago)">Show Chicago on Map </ion-button>
-
-          <div *ngIf="user" style="margin: 10px">
-            <!-- <p>Messwerte Insgeamt: <b>{{this.allPoints.features.length}}</b></p> -->
-            <!-- <p>Entdeckte Stay points: <b>{{stayPoints.length}}</b></p> -->
-            <p *ngIf="countClusters">
-              Entdeckte Cluster: <b>{{countClusters}}</b>
-            </p>
-          </div>
-          <div *ngIf="arrayPerCluster">
-            <ion-accordion-group>
-              <ion-accordion
-                *ngFor="let cluster of arrayPerCluster"
-                value="{{cluster.clusterId}}"
-              >
-                <ion-item slot="header">
-                  <ion-label
-                    >Cluster: {{cluster.clusterId}} || Detected entities:
-                    <ion-badge
-                      *ngIf="cluster.hull.properties.osmInfo"
-                      color="success"
-                      >{{cluster.hull.properties.osmInfo.length}}</ion-badge
-                    >
-                  </ion-label>
-                </ion-item>
+            <ion-accordion [disabled]="!stayPointsDone">
+              <ion-item color="light" slot="header">
+                <ion-label>DBMeans</ion-label>
+              </ion-item>
                 <ion-list slot="content">
-                  <ion-item *ngIf="cluster.frequency">
-                    <ion-label>
-                      Frequency : {{cluster.frequency.T}} (every {{
-                      cluster.frequency.T / 24 }} days)
-                    </ion-label>
+                  <ion-item>
+                    <ion-label position="stacked" >Value for eps:</ion-label>
+                    <ion-input
+                      (ionChange)="setEpsDBMeans($event)"
+                      value="{{epsDBMeans}}"
+                      placeholder="eps"
+                    ></ion-input>
                   </ion-item>
                   <ion-item>
-                    <ion-label
-                      >Centroid: {{cluster.hull.geometry.coordinates[0][0]}}
-                    </ion-label>
+                    <ion-label position="stacked">Value for minPts</ion-label>
+                    <ion-input
+                      (ionChange)="setMinPtsDBMeans($event)"
+                      value="{{minPtsDBMeans}}"
+                      placeholde="minPts"
+                      ></ion-input>
                   </ion-item>
+                  <ion-button (click)="getDBMeans()">DBMEANS</ion-button>
                 </ion-list>
               </ion-accordion>
-            </ion-accordion-group>
-          </div>
+              <ion-accordion [disabled]="!stayPointsDone">
+                <ion-item color="light" slot="header">
+                  <ion-label>OPTICS</ion-label>
+                </ion-item>
+                <ion-list slot="content">
+                  <ion-item>
+                    <ion-label position="stacked">Value for minPts</ion-label>
+                    <ion-input
+                      (ionChange)="setMinPtsOPTICS($event)"
+                      value="{{minPtsOPTICS}}"
+                      placeholde="minPts"
+                      ></ion-input>
+                  </ion-item>
+                  <ion-button (click)="getOPTICS()">OPTICS</ion-button>
+                </ion-list>
+            </ion-accordion>
+          </ion-accordion-group>
         </div>
       </div>
     </div>
