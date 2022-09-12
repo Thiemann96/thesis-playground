@@ -1,5 +1,8 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import * as turf from "@turf/turf";
+import { element } from 'protractor';
+
 
 @Injectable({
   providedIn: 'root'
@@ -19,10 +22,10 @@ export class OsmService {
 
   private async getAroundCoordinate(centroid) {
     // https://www.openstreetmap.org/query?lat=40.0086&lon=116.4684
-    const lat = centroid.centroid.geometry.coordinates[1];
-    const lng = centroid.centroid.geometry.coordinates[0];
+    const lat = centroid.geometry.coordinates[1];
+    const lng = centroid.geometry.coordinates[0];
 
-    const aroundDistance = 100;
+    const aroundDistance = 150;
 
     const dining_tags = this.getAllTags(this.dining);
     const entertainment_tags = this.getAllTags(this.entertainment)
@@ -49,23 +52,31 @@ export class OsmService {
 
   }
 
-  public async classifyCluster(centroid){
-    const osmInfo:any = await this.getAroundCoordinate(centroid);
-    let category = "misc/residential";
-    if(osmInfo.elements.length>1){
-      for (let index = 0; index < osmInfo.elements.length; index++) {
-        const element =  osmInfo.elements[index];
-        const tag = element.tags.amenity;
-        console.log(tag);
-        if(this.dining.includes(tag)) {category = "dining";break};
-        if(this.entertainment.includes(tag)) {category = "entertainment";break};
-        if(this.healthcare.includes(tag)){ category = "healthcare";break};
-        if(this.education.includes(tag)) {category = "education"; break};
-        if(tag === "parking"){category = "parking"; break;}
+  public async classifyCluster(cluster){
+    const osmInfo:any = await this.getAroundCoordinate(cluster.centroid);
+    const osmElements:any = osmInfo.elements.filter(element=>element.type === "node");
+    const pointArray = [];
+    let category = "misc";
+    if(osmElements.length>1){
+      osmElements.map(element=>{
+          const point = turf.point([element.lon, element.lat], {category : element.tags.amenity});
+          pointArray.push(point);        }
+    )
+
+    let nearestPoint = null; 
+    pointArray.map(p=>{
+      if (nearestPoint === null){nearestPoint = p}
+      else {
+        const distance = turf.distance(cluster.centroid, p);
+        const distanceBefore = turf.distance(cluster.centroid, nearestPoint);
+        if(distance < distanceBefore) { nearestPoint = p }
       }
+    })
+    category =  nearestPoint.properties.category;
     }
-    centroid.centroid.properties.category = category
-    return centroid;
+
+    cluster.category = category; 
+    return cluster;
   }
 
   private getAllTags(tagArray:Array<string>){
